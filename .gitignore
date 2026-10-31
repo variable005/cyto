@@ -1,0 +1,50 @@
+# ==========================================
+# macOS System Files
+# ==========================================
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# ==========================================
+# Swift Package Manager (SPM)
+# ==========================================
+.build/
+.swiftpm/
+Packages/
+
+# ==========================================
+# Xcode & Derived Data
+# ==========================================
+xcuserdata/
+DerivedData/
+build/
+*.build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.xcscmblueprint
+*.xccheckout
+*.xcbkptlist
+
+# App packaging & debug symbols
+*.dSYM.zip
+*.dSYM
+*.ipa
+
+# ==========================================
+# Local development & temporary files
+# ==========================================
+*.tmp
+*.log
+.env
+.env.local
+.swiftlint.cache
