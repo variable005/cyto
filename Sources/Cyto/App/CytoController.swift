@@ -39,12 +39,12 @@ public final class CytoController: @unchecked Sendable {
         self.overlayPanel = panel
         self.cytoView = view
         
-        // Setup menu bar controller with skin selection
+        // Setup menu bar controller with full character roster
         self.menuBarController = MenuBarController(
             onSummon: { [weak self] in self?.summonToCenter() },
             onToggleSleep: { [weak self] in self?.toggleSleep() },
             onToggleInteractive: { [weak self] in self?.toggleInteractive() },
-            onSelectSkin: { [weak self] skin in self?.selectSkin(skin) },
+            onSelectCharacter: { [weak self] char in self?.selectCharacter(char) },
             onQuit: { NSApp.terminate(nil) }
         )
         
@@ -65,7 +65,7 @@ public final class CytoController: @unchecked Sendable {
         keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
             guard let self = self else { return }
             
-            // Register typing activity (triggers curious look and ear twitch)
+            // Register typing activity (triggers curious look and head tilt)
             self.entity.registerUserTyping()
             
             // Check for Enter / Return (keyCode 36 is Return, 76 is numpad Enter)
@@ -115,7 +115,7 @@ public final class CytoController: @unchecked Sendable {
             }
         }
         
-        // 5. Tail and Ear Phases
+        // 5. Tail and Animation Phases
         entity.tailPhase += dt * 3.5
         if entity.tailPhase > .pi * 2.0 {
             entity.tailPhase -= .pi * 2.0
@@ -127,8 +127,7 @@ public final class CytoController: @unchecked Sendable {
         
         // 6. Eye Gaze Tracking (look towards mouse cursor or look down intently when user types)
         if entity.isTypingObserved {
-            // Looking curiously slightly down toward the keyboard/active window
-            entity.eyeOffset = CGPoint(x: 0, y: -2.0)
+            entity.eyeOffset = CGPoint(x: 0, y: -2.2)
         } else {
             let mouseLoc = NSEvent.mouseLocation
             let dx = mouseLoc.x - entity.position.x
@@ -170,7 +169,7 @@ public final class CytoController: @unchecked Sendable {
         menuBarController?.update(
             mood: entity.mood,
             focus: entity.focusTier,
-            skin: entity.skin,
+            character: entity.character,
             isSleeping: entity.state == .sleeping,
             isInteractive: isInteractive
         )
@@ -216,13 +215,13 @@ public final class CytoController: @unchecked Sendable {
     private func startWalking() {
         let dir: CGFloat = Bool.random() ? 1.0 : -1.0
         entity.facingDirection = dir
-        entity.velocity.dx = dir * CGFloat.random(in: 35.0...65.0)
+        entity.velocity.dx = dir * CGFloat.random(in: 30.0...60.0)
         entity.transition(to: .walking, duration: Double.random(in: 2.0...5.0))
     }
     
-    public func selectSkin(_ skin: AnimeSkin) {
-        entity.skin = skin
-        entity.applySquish(x: 1.2, y: 0.8)
+    public func selectCharacter(_ character: CharacterID) {
+        entity.character = character
+        entity.applySquish(x: 1.22, y: 0.82)
     }
     
     public func summonToCenter() {
