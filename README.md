@@ -18,7 +18,7 @@ Cyto is engineered to bridge sensory interaction, procedural physics, and non-in
 
 ## Architecture Overview
 
-Cyto utilizes a decoupled modular architecture executed on a high-precision 60Hz display link timer. The system orchestrates low-overhead window tracking, zero-permission hardware telemetry, ethereal kinematics, an emotion cycling state machine, and a vector rendering pipeline.
+Cyto utilizes a decoupled modular architecture executed on a 60Hz run loop simulation timer. The system orchestrates low-overhead window tracking, zero-permission hardware telemetry, ethereal kinematics, an emotion cycling state machine, and a vector rendering pipeline.
 
 ```
 +-----------------------------------------------------------------------------------------+
@@ -189,13 +189,15 @@ classDiagram
 
     class CytoState {
         <<enumeration>>
-        falling
-        perched
+        idle
         walking
-        dragged
-        sleeping
         sitting
+        sleeping
+        falling
+        bouncing
+        dragged
         petted
+        curious
         mischievous
     }
 
@@ -203,9 +205,8 @@ classDiagram
         <<enumeration>>
         calm
         happy
-        playful
         sleepy
-        focused
+        playful
     }
 
     class FocusTier {
@@ -365,7 +366,7 @@ stateDiagram-v2
 | Primary Language | Swift 5.9+ / Swift 6 |
 | User Interface Framework | AppKit / CoreGraphics Vector Engine |
 | Network Permissions | None (100% Offline, Zero Sockets, Zero Telemetry) |
-| Security Model | Sandboxed User-Space Execution (Zero Kernel Extensions) |
+| Security Model | Standard User-Space Execution (Zero Elevated Privileges / Zero Kernel Extensions) |
 | System Footprint | Under 30 MB Resident Memory, Throttled CPU Footprint |
 
 ---
