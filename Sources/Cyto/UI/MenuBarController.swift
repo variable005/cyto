@@ -5,26 +5,26 @@ public final class MenuBarController {
     private let onSummon: () -> Void
     private let onToggleSleep: () -> Void
     private let onToggleInteractive: () -> Void
-    private let onSelectSkin: (AnimeSkin) -> Void
+    private let onSelectCharacter: (CharacterID) -> Void
     private let onQuit: () -> Void
     
     private var moodItem: NSMenuItem?
     private var focusItem: NSMenuItem?
     private var sleepToggleItem: NSMenuItem?
     private var interactiveToggleItem: NSMenuItem?
-    private var skinMenuItems: [AnimeSkin: NSMenuItem] = [:]
+    private var characterMenuItems: [CharacterID: NSMenuItem] = [:]
     
     public init(
         onSummon: @escaping () -> Void,
         onToggleSleep: @escaping () -> Void,
         onToggleInteractive: @escaping () -> Void,
-        onSelectSkin: @escaping (AnimeSkin) -> Void,
+        onSelectCharacter: @escaping (CharacterID) -> Void,
         onQuit: @escaping () -> Void
     ) {
         self.onSummon = onSummon
         self.onToggleSleep = onToggleSleep
         self.onToggleInteractive = onToggleInteractive
-        self.onSelectSkin = onSelectSkin
+        self.onSelectCharacter = onSelectCharacter
         self.onQuit = onQuit
         setupStatusBar()
     }
@@ -55,20 +55,34 @@ public final class MenuBarController {
         
         menu.addItem(NSMenuItem.separator())
         
-        // Anime Skins Submenu
-        let skinsMenu = NSMenu()
-        let skinsItem = NSMenuItem(title: "Anime Design", action: nil, keyEquivalent: "")
-        skinsItem.submenu = skinsMenu
+        // Character Roster Submenu organized by category
+        let rosterMenu = NSMenu()
+        let rosterItem = NSMenuItem(title: "Characters", action: nil, keyEquivalent: "")
+        rosterItem.submenu = rosterMenu
         
-        for skin in AnimeSkin.allCases {
-            let item = NSMenuItem(title: skin.displayName, action: #selector(skinSelected(_:)), keyEquivalent: "")
-            item.target = self
-            item.representedObject = skin
-            skinsMenu.addItem(item)
-            skinMenuItems[skin] = item
+        for category in CharacterCategory.allCases {
+            let catHeader = NSMenuItem(title: category.rawValue, action: nil, keyEquivalent: "")
+            catHeader.isEnabled = false
+            rosterMenu.addItem(catHeader)
+            
+            let charactersInCategory = CharacterID.allCases.filter { $0.category == category }
+            for char in charactersInCategory {
+                let label = "\(char.name) — \(char.title)"
+                let item = NSMenuItem(title: label, action: #selector(characterSelected(_:)), keyEquivalent: "")
+                item.target = self
+                item.representedObject = char
+                rosterMenu.addItem(item)
+                characterMenuItems[char] = item
+            }
+            rosterMenu.addItem(NSMenuItem.separator())
         }
-        menu.addItem(skinsItem)
         
+        // Remove trailing separator if present
+        if let lastItem = rosterMenu.items.last, lastItem.isSeparatorItem {
+            rosterMenu.removeItem(lastItem)
+        }
+        
+        menu.addItem(rosterItem)
         menu.addItem(NSMenuItem.separator())
         
         let interactiveItem = NSMenuItem(title: "Clickable: Enabled", action: #selector(interactiveClicked), keyEquivalent: "i")
@@ -94,21 +108,20 @@ public final class MenuBarController {
         statusItem?.menu = menu
     }
     
-    public func update(mood: CytoMood, focus: FocusTier, skin: AnimeSkin, isSleeping: Bool, isInteractive: Bool) {
+    public func update(mood: CytoMood, focus: FocusTier, character: CharacterID, isSleeping: Bool, isInteractive: Bool) {
         moodItem?.title = "Mood: \(mood.rawValue.capitalized)"
         focusItem?.title = "Focus: \(focus.rawValue.capitalized)"
         sleepToggleItem?.title = isSleeping ? "Wake Up" : "Put to Rest"
         interactiveToggleItem?.title = isInteractive ? "Clickable: Enabled" : "Clickable: Disabled (Pass-Through)"
         
-        // Update checkmarks on skins
-        for (itemSkin, menuItem) in skinMenuItems {
-            menuItem.state = (itemSkin == skin) ? .on : .off
+        for (charID, menuItem) in characterMenuItems {
+            menuItem.state = (charID == character) ? .on : .off
         }
     }
     
-    @objc private func skinSelected(_ sender: NSMenuItem) {
-        guard let skin = sender.representedObject as? AnimeSkin else { return }
-        onSelectSkin(skin)
+    @objc private func characterSelected(_ sender: NSMenuItem) {
+        guard let char = sender.representedObject as? CharacterID else { return }
+        onSelectCharacter(char)
     }
     
     @objc private func summonClicked() {
