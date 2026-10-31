@@ -19,6 +19,22 @@ public final class CytoView: NSView {
         fatalError("init(coder:) has not been implemented")
     }
     
+    // MARK: - Interactive Hit-Testing
+    
+    public override func hitTest(_ point: NSPoint) -> NSView? {
+        let cx = bounds.midX
+        let isResting = (entity.state == .sleeping || entity.state == .sitting)
+        let hoverBob = isResting ? 0.0 : (sin(entity.floatPhase) * 4.5)
+        let cy = 6.0 + hoverBob + entity.size.height * 0.45
+        let dist = hypot(point.x - cx, point.y - cy)
+        
+        // Accurate circular hit-test: clicks outside Jelly pass straight down to windows
+        if dist <= 52.0 {
+            return self
+        }
+        return nil
+    }
+    
     // MARK: - Mouse Interaction
     
     public override func mouseDown(with event: NSEvent) {
@@ -75,21 +91,29 @@ public final class CytoView: NSView {
     public override func mouseUp(with event: NSEvent) {
         entity.isBeingInteractedWith = false
         
-        if !recentDragDeltas.isEmpty {
+        let mouseScreen = NSEvent.mouseLocation
+        let dragDist = hypot(mouseScreen.x - dragStartMouseScreen.x, mouseScreen.y - dragStartMouseScreen.y)
+        
+        if dragDist < 8.0 {
+            // Direct tap / click on Jelly
+            entity.registerDirectTap()
+            NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+        } else if !recentDragDeltas.isEmpty {
             let avgDx = recentDragDeltas.map { $0.x }.reduce(0, +) / CGFloat(recentDragDeltas.count)
             let avgDy = recentDragDeltas.map { $0.y }.reduce(0, +) / CGFloat(recentDragDeltas.count)
             
             let cappedDx = max(-950.0, min(950.0, avgDx * 0.85))
             let cappedDy = max(-750.0, min(950.0, avgDy * 0.85))
             entity.velocity = CGVector(dx: cappedDx, dy: cappedDy)
+            entity.transition(to: .falling)
+            entity.applySquish(x: 1.15, y: 0.85)
+            NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
         } else {
             entity.velocity = .zero
+            entity.transition(to: .falling)
+            entity.applySquish(x: 1.15, y: 0.85)
         }
         
-        entity.transition(to: .falling)
-        entity.applySquish(x: 1.15, y: 0.85)
-        
-        NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
         needsDisplay = true
     }
     
@@ -102,8 +126,9 @@ public final class CytoView: NSView {
         context.saveGState()
         
         let cx = bounds.midX
-        // Levitating vertical hover oscillation (idle float keyframe)
-        let hoverBob = entity.isPuddleLoaf ? 0.0 : (sin(entity.floatPhase) * 4.5)
+        let isResting = (entity.state == .sleeping || entity.state == .sitting)
+        // Levitating vertical hover oscillation (idle float keyframe, rests calmly when perched)
+        let hoverBob = isResting ? 0.0 : (sin(entity.floatPhase) * 4.5)
         let cy: CGFloat = 6.0 + hoverBob
         let w = entity.size.width * entity.squishX
         let h = entity.size.height * entity.squishY
@@ -119,7 +144,7 @@ public final class CytoView: NSView {
         // 1. Soft Lavender Drop Shadow on Window Titlebar
         if entity.state.isGrounded {
             let shadowW = w * 0.82
-            let shadowH: CGFloat = entity.isPuddleLoaf ? 8.0 : 5.5
+            let shadowH: CGFloat = isResting ? 7.0 : 5.5
             let shadowRect = CGRect(x: -shadowW / 2.0, y: -hoverBob - 2.0, width: shadowW, height: shadowH)
             context.setFillColor(CGColor(red: 0.24, green: 0.20, blue: 0.35, alpha: 0.25))
             context.fillEllipse(in: shadowRect)
@@ -131,14 +156,14 @@ public final class CytoView: NSView {
         // 3. Studio Headphones with Glowing Neon Violet LED Ring
         drawHeadphones(context: context, w: w, h: h)
         
-        // 6. Facial Expressions (Directly from Jelly's Design Sheet)
+        // 4. Facial Expressions (Directly from Jelly's Design Sheet)
         drawJellyFace(context: context, w: w, h: h)
         
-        // 7. Interactive Accessory Overlay (Coffee, Terminal, Nightcap)
+        // 5. Interactive Accessory Overlay (Coffee, Terminal, Nightcap)
         drawAccessory(context: context, w: w, h: h)
         
-        // 8. Sleeping Zzz or Curious Sparkles
-        if entity.isPuddleLoaf || entity.expression == .sleepy {
+        // 6. Sleeping Zzz or Curious Sparkles
+        if entity.state == .sleeping || entity.expression == .sleepy {
             drawSleepingZzz(context: context, h: h)
         } else if entity.expression == .excited {
             drawExcitedSparkles(context: context, w: w, h: h)
@@ -158,38 +183,33 @@ public final class CytoView: NSView {
     private func drawGhostSheet(context: CGContext, w: CGFloat, h: CGFloat) {
         let path = CGMutablePath()
         
-        if entity.isPuddleLoaf {
-            // Puddle Loaf (Sleep - Long Idle keyframe from design sheet)
-            let puddleRect = CGRect(x: -w * 0.52, y: 0, width: w * 1.04, height: h * 0.85)
-            path.addRoundedRect(in: puddleRect, cornerWidth: w * 0.45, cornerHeight: h * 0.38)
-        } else {
-            // Floating Ghost Sheet
-            let headR = w * 0.44
-            let headCenterY = h - headR - 2.0
-            
-            // Rounded dome head
-            path.addArc(center: CGPoint(x: 0, y: headCenterY), radius: headR, startAngle: 0, endAngle: .pi, clockwise: false)
-            
-            // Left side draping down
-            let leftBottom = CGPoint(x: -headR - 2.0, y: 0)
-            path.addLine(to: leftBottom)
-            
-            // 4 animated folds / ruffles along bottom hem
-            let rippleCount = 4
-            let segmentW = ((headR + 2.0) * 2.0) / CGFloat(rippleCount)
-            
-            for i in 0..<rippleCount {
-                let startX = -(headR + 2.0) + CGFloat(i) * segmentW
-                let endX = startX + segmentW
-                let midX = (startX + endX) / 2.0
-                let rippleWave = sin(entity.wispPhase + CGFloat(i) * 1.4) * 4.5
-                path.addQuadCurve(to: CGPoint(x: endX, y: 0), control: CGPoint(x: midX, y: 4.0 + rippleWave))
-            }
-            
-            // Right side closing up to dome
-            path.addLine(to: CGPoint(x: headR, y: headCenterY))
-            path.closeSubpath()
+        // Clean rounded dome head
+        let headR = w * 0.44
+        let headCenterY = h - headR - 2.0
+        
+        path.addArc(center: CGPoint(x: 0, y: headCenterY), radius: headR, startAngle: 0, endAngle: .pi, clockwise: false)
+        
+        // Left side draping down
+        let leftBottom = CGPoint(x: -headR - 2.0, y: 0)
+        path.addLine(to: leftBottom)
+        
+        // Animated folds / ruffles along bottom hem
+        let rippleCount = 4
+        let segmentW = ((headR + 2.0) * 2.0) / CGFloat(rippleCount)
+        let isResting = (entity.state == .sleeping || entity.state == .sitting)
+        let waveAmp: CGFloat = isResting ? 1.5 : 4.5
+        
+        for i in 0..<rippleCount {
+            let startX = -(headR + 2.0) + CGFloat(i) * segmentW
+            let endX = startX + segmentW
+            let midX = (startX + endX) / 2.0
+            let rippleWave = sin(entity.wispPhase + CGFloat(i) * 1.4) * waveAmp
+            path.addQuadCurve(to: CGPoint(x: endX, y: 0), control: CGPoint(x: midX, y: 4.0 + rippleWave))
         }
+        
+        // Right side closing up to dome
+        path.addLine(to: CGPoint(x: headR, y: headCenterY))
+        path.closeSubpath()
         
         context.saveGState()
         context.addPath(path)

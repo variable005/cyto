@@ -40,7 +40,6 @@ public final class CytoEntity {
     
     public var currentLedgeY: CGFloat?
     public var isBeingInteractedWith: Bool = false
-    public var isPuddleLoaf: Bool = false
     public var affection: CGFloat = 0.5
     public var energy: CGFloat = 0.95
     
@@ -91,10 +90,15 @@ public final class CytoEntity {
         self.speechBubbleTimer = duration
     }
     
-    public func registerUserTyping() {
+    public func registerUserTyping(isFast: Bool = false) {
         self.isTypingObserved = true
-        self.typingTimer = 1.6
-        self.isPuddleLoaf = false
+        self.typingTimer = 2.2
+        
+        // Wake up immediately if sleeping
+        if state == .sleeping {
+            self.state = .idle
+            self.mood = .calm
+        }
         
         // Tilt head curiously towards keyboard
         if abs(curiousTilt) < 0.01 {
@@ -102,15 +106,57 @@ public final class CytoEntity {
         }
         
         // Expression responds to typing flow
-        if focusTier == .inFlow {
-            self.expression = .focused // > < focused face
+        if isFast || focusTier == .inFlow {
+            self.expression = .focused // > < focused coder face
         } else {
-            self.expression = .curious // cute curious face with head tilt
+            self.expression = .curious // cute curious head tilt
+        }
+    }
+    
+    public func registerTypingBurstCompleted() {
+        self.expression = .excited
+        
+        let praiseQuotes = [
+            "Nice logic!",
+            "Clean code!",
+            "You got this!",
+            "Great flow!",
+            "Keep it up!",
+            "Super clean!",
+            "Magic in progress!",
+            "Giggle~"
+        ]
+        say(praiseQuotes.randomElement() ?? "Clean code!", duration: 2.5)
+        
+        // Joyful floaty hop
+        if state.isGrounded {
+            self.velocity.dy = 180.0
+            self.transition(to: .falling, duration: 0.5)
+            self.applySquish(x: 0.88, y: 1.18)
+        }
+    }
+    
+    public func registerDirectTap() {
+        // Direct tap on Jelly
+        let tapQuotes = [
+            "Boo!",
+            "Hehe~",
+            "Here with you!",
+            "Need a break?",
+            "Code looks good!",
+            "I'm listening~",
+            "Stay hydrated!"
+        ]
+        say(tapQuotes.randomElement() ?? "Boo!", duration: 2.4)
+        self.expression = .happy
+        self.applySquish(x: 1.15, y: 0.86)
+        if state.isGrounded {
+            self.velocity.dy = 160.0
+            self.transition(to: .falling, duration: 0.4)
         }
     }
     
     public func registerEnterPressed() {
-        self.isPuddleLoaf = false
         self.expression = .excited // Excited sparkling face!
         
         let jellyQuotes = [
@@ -145,31 +191,25 @@ public final class CytoEntity {
         case .sleeping:
             self.mood = .sleepy
             self.expression = .sleepy
-            self.isPuddleLoaf = true
-            self.applySquish(x: 1.35, y: 0.65) // Melt into titlebar puddle
+            self.applySquish(x: 1.03, y: 0.97) // Soft comfortable resting settle
         case .sitting:
             self.expression = .happy // ^ ^ sitting resting pose
-            self.isPuddleLoaf = false
         case .walking:
             self.walkPhase = 0.0
             self.expression = .neutral
-            self.isPuddleLoaf = false
         case .petted:
             self.affection = min(1.0, affection + 0.1)
             self.mood = .happy
             self.expression = .happy
-            self.isPuddleLoaf = false
         case .mischievous:
             self.mood = .playful
             self.expression = .excited
         case .dragged:
             self.expression = .surprised
-            self.isPuddleLoaf = false
         default:
             if !isTypingObserved {
                 self.expression = .neutral
             }
-            self.isPuddleLoaf = false
         }
     }
 }

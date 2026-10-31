@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 
 public final class MenuBarController {
     private var statusItem: NSStatusItem?
@@ -13,6 +14,7 @@ public final class MenuBarController {
     private var focusItem: NSMenuItem?
     private var sleepToggleItem: NSMenuItem?
     private var interactiveToggleItem: NSMenuItem?
+    private var accessibilityItem: NSMenuItem?
     private var expressionMenuItems: [JellyExpression: NSMenuItem] = [:]
     private var accessoryMenuItems: [JellyAccessory: NSMenuItem] = [:]
     
@@ -103,6 +105,13 @@ public final class MenuBarController {
         menu.addItem(sleepItem)
         self.sleepToggleItem = sleepItem
         
+        let axTrusted = AXIsProcessTrusted()
+        let axTitle = axTrusted ? "Enter Key Reactions: Enabled" : "Enable Enter Key Reactions (Accessibility)..."
+        let axItem = NSMenuItem(title: axTitle, action: #selector(accessibilityClicked), keyEquivalent: "")
+        axItem.target = self
+        menu.addItem(axItem)
+        self.accessibilityItem = axItem
+        
         menu.addItem(NSMenuItem.separator())
         
         let quitItem = NSMenuItem(title: "Quit Jelly", action: #selector(quitClicked), keyEquivalent: "q")
@@ -153,6 +162,15 @@ public final class MenuBarController {
     
     @objc private func interactiveClicked() {
         onToggleInteractive()
+    }
+    
+    @objc private func accessibilityClicked() {
+        if !AXIsProcessTrusted() {
+            let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+            _ = AXIsProcessTrustedWithOptions(options)
+        }
+        let isTrusted = AXIsProcessTrusted()
+        accessibilityItem?.title = isTrusted ? "Enter Key Reactions: Enabled" : "Enable Enter Key Reactions (Accessibility)..."
     }
     
     @objc private func quitClicked() {

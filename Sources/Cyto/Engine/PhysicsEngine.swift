@@ -12,10 +12,10 @@ public final class PhysicsEngine {
     public init() {}
     
     public func update(entity: CytoEntity, deltaTime: CGFloat, ledges: [Ledge], screenBounds: CGRect) {
-        // 1. Recover squish back to target state (ectoplasm elasticity or puddle loaf)
+        // 1. Recover squish back to normal (ectoplasm elasticity)
         let springConstant: CGFloat = 12.0
-        let targetSquishX: CGFloat = entity.isPuddleLoaf ? 1.35 : 1.0
-        let targetSquishY: CGFloat = entity.isPuddleLoaf ? 0.65 : 1.0
+        let targetSquishX: CGFloat = 1.0
+        let targetSquishY: CGFloat = 1.0
         
         entity.squishX += (targetSquishX - entity.squishX) * min(1.0, springConstant * deltaTime)
         entity.squishY += (targetSquishY - entity.squishY) * min(1.0, springConstant * deltaTime)

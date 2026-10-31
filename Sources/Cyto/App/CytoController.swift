@@ -18,6 +18,12 @@ public final class CytoController: @unchecked Sendable {
     private var lastLedgeQueryTime: Date = Date()
     private var isInteractive: Bool = true
     
+    // Zero-permission hardware keystroke & cadence tracking
+    private var previousKeyIdle: Double = 999.0
+    private var lastKeyRegisteredTime: Date = .distantPast
+    private var burstKeystrokeCount: Int = 0
+    private var hasCelebratedCurrentBurst: Bool = false
+    
     public init() {
         let initialPoint = CGPoint(x: 450, y: 550)
         self.entity = CytoEntity(initialPosition: initialPoint)
@@ -66,9 +72,6 @@ public final class CytoController: @unchecked Sendable {
         keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
             guard let self = self else { return }
             
-            // Register typing activity (triggers curious look and wisp ripples)
-            self.entity.registerUserTyping()
-            
             // Check for Enter / Return (keyCode 36 is Return, 76 is numpad Enter)
             if event.keyCode == 36 || event.keyCode == 76 {
                 self.entity.registerEnterPressed()
@@ -95,7 +98,31 @@ public final class CytoController: @unchecked Sendable {
             refreshLedges()
         }
         
-        // 2. Query activity & focus cadence
+        // 2. Zero-permission real-time typing cadence & burst tracking
+        let keyIdle = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: .keyDown)
+        let keyJustPressed = (keyIdle < previousKeyIdle && keyIdle < 1.0) ||
+                             (keyIdle < 0.05 && now.timeIntervalSince(lastKeyRegisteredTime) > 0.04)
+        
+        if keyJustPressed {
+            lastKeyRegisteredTime = now
+            burstKeystrokeCount += 1
+            hasCelebratedCurrentBurst = false
+            
+            let isFastTyping = burstKeystrokeCount >= 4
+            entity.registerUserTyping(isFast: isFastTyping)
+        } else if !hasCelebratedCurrentBurst && burstKeystrokeCount >= 4 && keyIdle >= 0.7 && keyIdle <= 1.4 {
+            // Typing burst completed: praise line submission / code block completion
+            hasCelebratedCurrentBurst = true
+            burstKeystrokeCount = 0
+            entity.registerTypingBurstCompleted()
+        } else if keyIdle > 2.5 {
+            burstKeystrokeCount = 0
+            hasCelebratedCurrentBurst = false
+        }
+        
+        previousKeyIdle = keyIdle
+        
+        // Query focus tier
         let (focusTier, _) = activityEngine.updateFocusTier()
         entity.focusTier = focusTier
         
@@ -232,14 +259,12 @@ public final class CytoController: @unchecked Sendable {
         let center = CGPoint(x: screen.frame.midX, y: screen.frame.midY)
         entity.position = center
         entity.velocity = .zero
-        entity.isPuddleLoaf = false
         entity.transition(to: .falling)
         entity.applySquish(x: 1.25, y: 0.75)
     }
     
     public func toggleSleep() {
         if entity.state == .sleeping {
-            entity.isPuddleLoaf = false
             entity.transition(to: .idle, duration: 4.0)
             entity.mood = .calm
         } else {

@@ -17,6 +17,17 @@ The core behavioral engine monitors workflow rhythm through low-overhead, privac
 - Distraction and Idle States: Prolonged inactive intervals or sporadic erratic inputs trigger curiosity, restlessness, wandering, or attention-seeking behaviors across the screen perimeter.
 - Zero Inspection: Behavioral states are driven strictly by timing differentials and idle durations. No keystroke content, input buffer, or window text is ever captured, logged, or processed.
 
+### Real-Time Keystroke and Cadence Engine
+The behavioral engine integrates hardware-level event timing to respond organically to user work sessions:
+- Zero-Permission Typing Detection: Uses low-level CoreGraphics event source timing to identify active keystrokes, typing frequency, and cadence across any application without requiring accessibility permissions or capturing text content.
+- Dynamic Cadence Responses: As typing begins, Jelly tilts its head curiously toward the keyboard, focuses intently with determined anime expressions during sustained bursts, and offers encouraging speech bubble praise upon completing code lines or thought sequences.
+- Submission and Enter Reactions: Optional Accessibility integration enables dedicated celebration animations, joyful hops, and dialogue bubbles upon executing Return or Enter keys.
+
+### Procedural Ghost Aesthetics and Resting Dynamics
+- Spectral Vector Rendering: Procedurally generated ghost sheet with smooth lavender gradients, animated hem folds, and studio headphones featuring a pulsing neon violet LED ring.
+- Adaptive Resting State: When parked on a window titlebar or during deep work, Jelly settles comfortably into a resting posture with calm closed eyelids, soft breathing oscillations, and ascending sleep particles, keeping headphone geometry snug and natural.
+- Direct Interaction: Supports direct tapping for interactive dialogue, continuous petting with Force Touch haptic feedback, and inertia-driven tossing. Accurate circular hit testing guarantees that clicks outside the character pass directly through to underlying desktop elements.
+
 ### Non-Intrusive Overlay Integration
 Cyto renders on a dedicated borderless, transparent floating window level (`NSPanel`). The view surface dynamically manages mouse interaction boundaries:
 - Transparent Passthrough: Areas outside the entity permit full click-through to underlying applications, IDEs, and browsers without disrupting active workflows.
