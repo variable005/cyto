@@ -2,7 +2,7 @@ import Foundation
 import CoreGraphics
 
 public final class PhysicsEngine {
-    // Floatier, ethereal gravity for a ghost
+    // Ethereal floaty ghost gravity
     public var gravity: CGFloat = -680.0
     public var terminalVelocity: CGFloat = -750.0
     public var bounceElasticity: CGFloat = 0.45
@@ -12,27 +12,36 @@ public final class PhysicsEngine {
     public init() {}
     
     public func update(entity: CytoEntity, deltaTime: CGFloat, ledges: [Ledge], screenBounds: CGRect) {
-        // 1. Recover squish back to neutral (ectoplasm elasticity)
+        // 1. Recover squish back to target state (ectoplasm elasticity or puddle loaf)
         let springConstant: CGFloat = 12.0
-        entity.squishX += (1.0 - entity.squishX) * min(1.0, springConstant * deltaTime)
-        entity.squishY += (1.0 - entity.squishY) * min(1.0, springConstant * deltaTime)
+        let targetSquishX: CGFloat = entity.isPuddleLoaf ? 1.35 : 1.0
+        let targetSquishY: CGFloat = entity.isPuddleLoaf ? 0.65 : 1.0
         
-        // 2. Ghost floating and wisp phase oscillations
+        entity.squishX += (targetSquishX - entity.squishX) * min(1.0, springConstant * deltaTime)
+        entity.squishY += (targetSquishY - entity.squishY) * min(1.0, springConstant * deltaTime)
+        
+        // 2. Oscillations for Float, Wisp ripples, Scarf fluttering, and Headphone LED pulse
         entity.floatPhase += deltaTime * 2.8
         if entity.floatPhase > .pi * 2.0 {
             entity.floatPhase -= .pi * 2.0
         }
         
-        entity.wispPhase += deltaTime * 5.0
+        entity.wispPhase += deltaTime * 5.2
         if entity.wispPhase > .pi * 2.0 {
             entity.wispPhase -= .pi * 2.0
         }
         
-        // Orbiting spirit flame (faster when typing)
-        let orbitSpeed = entity.isTypingObserved ? 4.5 : 2.2
-        entity.orbOrbitPhase += deltaTime * CGFloat(orbitSpeed)
-        if entity.orbOrbitPhase > .pi * 2.0 {
-            entity.orbOrbitPhase -= .pi * 2.0
+        // Scarf flutters faster when moving
+        let scarfSpeed: CGFloat = abs(entity.velocity.dx) > 15 ? 9.0 : 4.0
+        entity.scarfFlutterPhase += deltaTime * scarfSpeed
+        if entity.scarfFlutterPhase > .pi * 2.0 {
+            entity.scarfFlutterPhase -= .pi * 2.0
+        }
+        
+        // Headphone LED pulsing glow
+        entity.headphoneGlowPhase += deltaTime * 3.2
+        if entity.headphoneGlowPhase > .pi * 2.0 {
+            entity.headphoneGlowPhase -= .pi * 2.0
         }
         
         // 3. Skip kinematic simulation if manually dragged
@@ -43,7 +52,6 @@ public final class PhysicsEngine {
         
         // 4. In-air / floating simulation
         if !entity.state.isGrounded {
-            // Apply gentle floaty gravity
             entity.velocity.dy += gravity * deltaTime
             if entity.velocity.dy < terminalVelocity {
                 entity.velocity.dy = terminalVelocity
@@ -61,11 +69,11 @@ public final class PhysicsEngine {
             if entity.position.x - halfWidth < screenBounds.minX {
                 entity.position.x = screenBounds.minX + halfWidth
                 entity.velocity.dx = abs(entity.velocity.dx) * bounceElasticity
-                entity.applySquish(x: 0.80, y: 1.20)
+                entity.applySquish(x: 0.82, y: 1.18)
             } else if entity.position.x + halfWidth > screenBounds.maxX {
                 entity.position.x = screenBounds.maxX - halfWidth
                 entity.velocity.dx = -abs(entity.velocity.dx) * bounceElasticity
-                entity.applySquish(x: 0.80, y: 1.20)
+                entity.applySquish(x: 0.82, y: 1.18)
             }
             
             // Ledge collision check (hovering down onto window headers)
@@ -81,7 +89,7 @@ public final class PhysicsEngine {
                             entity.currentLedgeY = ledge.topY
                             
                             if abs(entity.velocity.dy) > 220.0 {
-                                entity.applySquish(x: 1.30, y: 0.70)
+                                entity.applySquish(x: 1.25, y: 0.75)
                                 entity.transition(to: .bouncing, duration: 0.25)
                                 entity.velocity.dy = -entity.velocity.dy * bounceElasticity
                                 if abs(entity.velocity.dy) < 50.0 {
@@ -91,7 +99,7 @@ public final class PhysicsEngine {
                             } else {
                                 entity.velocity.dy = 0
                                 entity.velocity.dx *= groundFriction
-                                entity.applySquish(x: 1.15, y: 0.85)
+                                entity.applySquish(x: 1.12, y: 0.88)
                                 entity.transition(to: .idle)
                             }
                             return
