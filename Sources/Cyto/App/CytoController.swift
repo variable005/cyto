@@ -39,12 +39,13 @@ public final class CytoController: @unchecked Sendable {
         self.overlayPanel = panel
         self.cytoView = view
         
-        // Setup menu bar controller with Ghost Aura options
+        // Setup menu bar controller for Jelly
         self.menuBarController = MenuBarController(
             onSummon: { [weak self] in self?.summonToCenter() },
             onToggleSleep: { [weak self] in self?.toggleSleep() },
             onToggleInteractive: { [weak self] in self?.toggleInteractive() },
-            onSelectAura: { [weak self] aura in self?.selectAura(aura) },
+            onSelectExpression: { [weak self] expr in self?.selectExpression(expr) },
+            onSelectAccessory: { [weak self] acc in self?.selectAccessory(acc) },
             onQuit: { NSApp.terminate(nil) }
         )
         
@@ -65,7 +66,7 @@ public final class CytoController: @unchecked Sendable {
         keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
             guard let self = self else { return }
             
-            // Register typing activity (triggers curious look and spirit orb acceleration)
+            // Register typing activity (triggers curious look and scarf flutter)
             self.entity.registerUserTyping()
             
             // Check for Enter / Return (keyCode 36 is Return, 76 is numpad Enter)
@@ -104,6 +105,9 @@ public final class CytoController: @unchecked Sendable {
             if entity.typingTimer <= 0 {
                 entity.isTypingObserved = false
                 entity.curiousTilt = 0.0
+                if entity.state != .sleeping && entity.state != .sitting {
+                    entity.expression = .neutral
+                }
             }
         }
         
@@ -112,6 +116,9 @@ public final class CytoController: @unchecked Sendable {
             entity.speechBubbleTimer -= Double(dt)
             if entity.speechBubbleTimer <= 0 {
                 entity.speechBubbleText = nil
+                if !entity.isTypingObserved && entity.state != .sleeping && entity.state != .sitting {
+                    entity.expression = .neutral
+                }
             }
         }
         
@@ -159,7 +166,8 @@ public final class CytoController: @unchecked Sendable {
         menuBarController?.update(
             mood: entity.mood,
             focus: entity.focusTier,
-            aura: entity.aura,
+            expression: entity.expression,
+            accessory: entity.accessory,
             isSleeping: entity.state == .sleeping,
             isInteractive: isInteractive
         )
@@ -209,9 +217,14 @@ public final class CytoController: @unchecked Sendable {
         entity.transition(to: .walking, duration: Double.random(in: 2.0...5.0))
     }
     
-    public func selectAura(_ aura: GhostAura) {
-        entity.aura = aura
-        entity.applySquish(x: 1.20, y: 0.80)
+    public func selectExpression(_ expression: JellyExpression) {
+        entity.expression = expression
+        entity.applySquish(x: 1.15, y: 0.88)
+    }
+    
+    public func selectAccessory(_ accessory: JellyAccessory) {
+        entity.accessory = accessory
+        entity.applySquish(x: 1.12, y: 0.90)
     }
     
     public func summonToCenter() {
@@ -219,12 +232,14 @@ public final class CytoController: @unchecked Sendable {
         let center = CGPoint(x: screen.frame.midX, y: screen.frame.midY)
         entity.position = center
         entity.velocity = .zero
+        entity.isPuddleLoaf = false
         entity.transition(to: .falling)
         entity.applySquish(x: 1.25, y: 0.75)
     }
     
     public func toggleSleep() {
         if entity.state == .sleeping {
+            entity.isPuddleLoaf = false
             entity.transition(to: .idle, duration: 4.0)
             entity.mood = .calm
         } else {
