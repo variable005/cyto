@@ -125,17 +125,10 @@ public final class CytoView: NSView {
             context.fillEllipse(in: shadowRect)
         }
         
-        // 2. Trailing Scarf Tail (Back Layer)
-        drawScarfTail(context: context, w: w, h: h, inFront: false)
-        
-        // 3. Ghost Sheet Body (Lavender Ambient Shadows & Shading)
+        // 2. Ghost Sheet Body (Lavender Ambient Shadows & Shading)
         drawGhostSheet(context: context, w: w, h: h)
         
-        // 4. Knitted Scarf (Neck Wrap & Front Flutter Knot)
-        drawScarfNeck(context: context, w: w, h: h)
-        drawScarfTail(context: context, w: w, h: h, inFront: true)
-        
-        // 5. Studio Headphones with Glowing Neon Violet LED Ring
+        // 3. Studio Headphones with Glowing Neon Violet LED Ring
         drawHeadphones(context: context, w: w, h: h)
         
         // 6. Facial Expressions (Directly from Jelly's Design Sheet)
@@ -211,11 +204,6 @@ public final class CytoView: NSView {
             context.drawLinearGradient(gradient, start: CGPoint(x: 0, y: h), end: CGPoint(x: 0, y: 0), options: [])
         }
         
-        // Deep purple ambient shadow fold under the neck
-        let neckShadowRect = CGRect(x: -w * 0.36, y: h * 0.28, width: w * 0.72, height: h * 0.25)
-        context.setFillColor(CGColor(red: 0.76, green: 0.72, blue: 0.88, alpha: 0.55))
-        context.fillEllipse(in: neckShadowRect)
-        
         context.restoreGState()
         
         // Soft clean outline
@@ -270,48 +258,7 @@ public final class CytoView: NSView {
         context.restoreGState()
     }
     
-    // MARK: - Knitted Scarf (Neck Wrap & Fluttering Tail)
-    private func drawScarfNeck(context: CGContext, w: CGFloat, h: CGFloat) {
-        let scarfY = h * 0.34
-        let scarfW = w * 0.72
-        let scarfH: CGFloat = 12.0
-        let scarfRect = CGRect(x: -scarfW / 2.0, y: scarfY, width: scarfW, height: scarfH)
-        
-        // Deep Indigo Purple Scarf (#3E3259)
-        context.setFillColor(CGColor(red: 0.24, green: 0.20, blue: 0.35, alpha: 1.0))
-        let scarfPath = CGPath(roundedRect: scarfRect, cornerWidth: 6.0, cornerHeight: 6.0, transform: nil)
-        context.addPath(scarfPath)
-        context.fillPath()
-        
-        // Knot detail
-        let knotRect = CGRect(x: -w * 0.18, y: scarfY - 2.0, width: 14.0, height: 16.0)
-        context.setFillColor(CGColor(red: 0.20, green: 0.16, blue: 0.30, alpha: 1.0))
-        context.fillEllipse(in: knotRect)
-    }
-    
-    private func drawScarfTail(context: CGContext, w: CGFloat, h: CGFloat, inFront: Bool) {
-        // Scarf tail fluttering to the side
-        let flutter = sin(entity.scarfFlutterPhase) * 6.5
-        let startX = -w * 0.14
-        let startY = h * 0.35
-        
-        let tailPath = CGMutablePath()
-        tailPath.move(to: CGPoint(x: startX, y: startY))
-        
-        let endX = startX - 22.0 - abs(entity.velocity.dx) * 0.08
-        let endY = startY - 20.0 + flutter
-        
-        tailPath.addQuadCurve(to: CGPoint(x: endX, y: endY), control: CGPoint(x: startX - 16.0 + flutter * 0.4, y: startY - 8.0))
-        tailPath.addLine(to: CGPoint(x: endX + 8.0, y: endY - 4.0))
-        tailPath.addQuadCurve(to: CGPoint(x: startX + 10.0, y: startY), control: CGPoint(x: startX - 6.0 + flutter * 0.4, y: startY - 10.0))
-        tailPath.closeSubpath()
-        
-        if inFront {
-            context.setFillColor(CGColor(red: 0.26, green: 0.22, blue: 0.38, alpha: 1.0))
-            context.addPath(tailPath)
-            context.fillPath()
-        }
-    }
+
     
     // MARK: - Expressions (Exact Keyframes from Design Sheet)
     private func drawJellyFace(context: CGContext, w: CGFloat, h: CGFloat) {

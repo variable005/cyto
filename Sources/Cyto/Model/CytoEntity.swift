@@ -20,10 +20,9 @@ public final class CytoEntity {
     public var squishX: CGFloat
     public var squishY: CGFloat
     
-    // Floating, Scarf & Headphone Dynamics
+    // Floating & Headphone Dynamics
     public var floatPhase: CGFloat
     public var wispPhase: CGFloat
-    public var scarfFlutterPhase: CGFloat
     public var headphoneGlowPhase: CGFloat
     
     public var stateTimer: TimeInterval
@@ -64,7 +63,6 @@ public final class CytoEntity {
         
         self.floatPhase = 0.0
         self.wispPhase = 0.0
-        self.scarfFlutterPhase = 0.0
         self.headphoneGlowPhase = 0.0
         
         self.stateTimer = 0.0

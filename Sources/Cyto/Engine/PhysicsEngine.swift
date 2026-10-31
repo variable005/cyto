@@ -20,7 +20,7 @@ public final class PhysicsEngine {
         entity.squishX += (targetSquishX - entity.squishX) * min(1.0, springConstant * deltaTime)
         entity.squishY += (targetSquishY - entity.squishY) * min(1.0, springConstant * deltaTime)
         
-        // 2. Oscillations for Float, Wisp ripples, Scarf fluttering, and Headphone LED pulse
+        // 2. Oscillations for Float, Wisp ripples, and Headphone LED pulse
         entity.floatPhase += deltaTime * 2.8
         if entity.floatPhase > .pi * 2.0 {
             entity.floatPhase -= .pi * 2.0
@@ -29,13 +29,6 @@ public final class PhysicsEngine {
         entity.wispPhase += deltaTime * 5.2
         if entity.wispPhase > .pi * 2.0 {
             entity.wispPhase -= .pi * 2.0
-        }
-        
-        // Scarf flutters faster when moving
-        let scarfSpeed: CGFloat = abs(entity.velocity.dx) > 15 ? 9.0 : 4.0
-        entity.scarfFlutterPhase += deltaTime * scarfSpeed
-        if entity.scarfFlutterPhase > .pi * 2.0 {
-            entity.scarfFlutterPhase -= .pi * 2.0
         }
         
         // Headphone LED pulsing glow

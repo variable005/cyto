@@ -66,7 +66,7 @@ public final class CytoController: @unchecked Sendable {
         keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
             guard let self = self else { return }
             
-            // Register typing activity (triggers curious look and scarf flutter)
+            // Register typing activity (triggers curious look and wisp ripples)
             self.entity.registerUserTyping()
             
             // Check for Enter / Return (keyCode 36 is Return, 76 is numpad Enter)
