@@ -518,7 +518,7 @@ public final class CytoView: NSView {
         context.addLine(to: CGPoint(x: center.x - size * 0.3, y: center.y - size * 0.3))
         context.addLine(to: CGPoint(x: center.x - size, y: center.y))
         context.addLine(to: CGPoint(x: center.x - size * 0.3, y: center.y + size * 0.3))
-        context.closeSubpath()
+        context.closePath()
         context.fillPath()
         context.restoreGState()
     }
