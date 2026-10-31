@@ -39,12 +39,12 @@ public final class MenuBarController {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         guard let button = statusItem?.button else { return }
         
-        button.title = "jelly"
+        button.title = "cyto"
         button.font = NSFont.monospacedSystemFont(ofSize: 12.0, weight: .semibold)
         
         let menu = NSMenu()
         
-        let titleItem = NSMenuItem(title: "Jelly The Desktop Ghost", action: nil, keyEquivalent: "")
+        let titleItem = NSMenuItem(title: "Cyto The Desktop Ghost", action: nil, keyEquivalent: "")
         titleItem.isEnabled = false
         menu.addItem(titleItem)
         menu.addItem(NSMenuItem.separator())
@@ -114,7 +114,7 @@ public final class MenuBarController {
         
         menu.addItem(NSMenuItem.separator())
         
-        let quitItem = NSMenuItem(title: "Quit Jelly", action: #selector(quitClicked), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Quit Cyto", action: #selector(quitClicked), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
         

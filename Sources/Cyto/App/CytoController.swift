@@ -21,6 +21,7 @@ public final class CytoController: @unchecked Sendable {
     // Zero-permission hardware keystroke & cadence tracking
     private var previousKeyIdle: Double = 999.0
     private var lastKeyRegisteredTime: Date = .distantPast
+    private var typingBurstStartTime: Date = Date()
     private var burstKeystrokeCount: Int = 0
     private var hasCelebratedCurrentBurst: Bool = false
     private var lastSpokenTime: Date = Date()
@@ -103,29 +104,70 @@ public final class CytoController: @unchecked Sendable {
             refreshLedges()
         }
         
-        // 2. Zero-permission real-time typing cadence & burst tracking
+        // 2. Zero-permission real-time typing cadence & emotion cycling engine
         let keyIdle = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: .keyDown)
         let keyJustPressed = (keyIdle < previousKeyIdle && keyIdle < 1.0) ||
                              (keyIdle < 0.05 && now.timeIntervalSince(lastKeyRegisteredTime) > 0.04)
         
         if keyJustPressed {
+            if burstKeystrokeCount == 0 {
+                typingBurstStartTime = now
+            }
             lastKeyRegisteredTime = now
             burstKeystrokeCount += 1
             hasCelebratedCurrentBurst = false
             
-            let isFastTyping = burstKeystrokeCount >= 6
-            entity.registerUserTyping(isFast: isFastTyping)
-        } else if !hasCelebratedCurrentBurst && burstKeystrokeCount >= 25 && keyIdle >= 0.8 && keyIdle <= 2.2 {
-            // Typing burst completed: praise only after a genuine session with a 50s cooldown
-            if now.timeIntervalSince(lastSpokenTime) > 50.0 {
-                lastSpokenTime = now
-                hasCelebratedCurrentBurst = true
-                burstKeystrokeCount = 0
-                entity.registerTypingBurstCompleted()
+            // Rolling Keystrokes Per Second (KPS)
+            let sessionDuration = max(0.2, now.timeIntervalSince(typingBurstStartTime))
+            let kps = Double(burstKeystrokeCount) / sessionDuration
+            
+            // Dynamic Emotion Cycling based on typing progression & velocity:
+            if burstKeystrokeCount <= 3 {
+                // Phase 1: Waking up / Curious initial glance
+                entity.transitionToTypingEmotion(.curious)
+            } else if burstKeystrokeCount <= 12 {
+                // Phase 2: Steady attentiveness
+                entity.transitionToTypingEmotion(.focused)
+            } else {
+                // Phase 3: Flow acceleration
+                if kps > 3.2 {
+                    entity.transitionToTypingEmotion(.excited) // Fast rhythm!
+                } else {
+                    entity.transitionToTypingEmotion(.focused) // Sustained focus
+                }
             }
-        } else if keyIdle > 2.5 {
-            burstKeystrokeCount = 0
-            hasCelebratedCurrentBurst = false
+        } else if burstKeystrokeCount > 0 {
+            let pauseDuration = now.timeIntervalSince(lastKeyRegisteredTime)
+            
+            if pauseDuration >= 0.35 && pauseDuration < 1.2 {
+                // Phase 4: Mid-flow pause / Thinking hesitation
+                if burstKeystrokeCount > 16 {
+                    entity.transitionToTypingEmotion(.surprised) // High-speed sudden pause
+                } else if burstKeystrokeCount > 6 {
+                    entity.transitionToTypingEmotion(.confused) // Thinking pause
+                }
+            } else if pauseDuration >= 1.2 && pauseDuration < 3.5 {
+                // Phase 5: Thought / Sentence completed - warm happy smile
+                entity.transitionToTypingEmotion(.happy)
+                
+                // Occasional praise bubble after a genuine 25+ key session (with 50s cooldown)
+                if !hasCelebratedCurrentBurst && burstKeystrokeCount >= 25 {
+                    if now.timeIntervalSince(lastSpokenTime) > 50.0 {
+                        lastSpokenTime = now
+                        hasCelebratedCurrentBurst = true
+                        entity.registerTypingBurstCompleted()
+                    }
+                }
+            } else if pauseDuration >= 3.5 {
+                // Phase 6: Session completed: return smoothly to neutral gaze tracking
+                burstKeystrokeCount = 0
+                hasCelebratedCurrentBurst = false
+                entity.isTypingObserved = false
+                entity.curiousTilt = 0.0
+                if entity.state != .sleeping && entity.state != .sitting {
+                    entity.expression = .neutral
+                }
+            }
         }
         
         previousKeyIdle = keyIdle

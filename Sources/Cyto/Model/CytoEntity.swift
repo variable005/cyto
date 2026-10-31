@@ -92,9 +92,9 @@ public final class CytoEntity {
         self.speechBubbleMaxDuration = duration
     }
     
-    public func registerUserTyping(isFast: Bool = false) {
+    public func transitionToTypingEmotion(_ emotion: JellyExpression) {
         self.isTypingObserved = true
-        self.typingTimer = 2.2
+        self.typingTimer = 2.8
         
         // Wake up immediately if sleeping
         if state == .sleeping {
@@ -102,16 +102,22 @@ public final class CytoEntity {
             self.mood = .calm
         }
         
-        // Tilt head curiously towards keyboard
-        if abs(curiousTilt) < 0.01 {
-            curiousTilt = Bool.random() ? 0.12 : -0.12
-        }
+        self.expression = emotion
         
-        // Expression responds to typing flow
-        if isFast || focusTier == .inFlow {
-            self.expression = .focused // > < focused coder face
-        } else {
-            self.expression = .curious // cute curious head tilt
+        // Dynamic head tilt matching the emotion
+        switch emotion {
+        case .curious:
+            self.curiousTilt = 0.12
+        case .confused:
+            self.curiousTilt = -0.14
+        case .focused:
+            self.curiousTilt = 0.05
+        case .surprised:
+            self.curiousTilt = 0.0
+        case .happy, .excited:
+            self.curiousTilt = 0.0
+        default:
+            self.curiousTilt = 0.0
         }
     }
     
