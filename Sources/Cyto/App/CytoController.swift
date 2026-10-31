@@ -12,6 +12,7 @@ public final class CytoController: @unchecked Sendable {
     private var menuBarController: MenuBarController?
     
     private var displayTimer: Timer?
+    private var keyMonitor: Any?
     private var lastFrameTime: Date = Date()
     private var cachedLedges: [Ledge] = []
     private var lastLedgeQueryTime: Date = Date()
@@ -38,13 +39,17 @@ public final class CytoController: @unchecked Sendable {
         self.overlayPanel = panel
         self.cytoView = view
         
-        // Setup menu bar controller
+        // Setup menu bar controller with skin selection
         self.menuBarController = MenuBarController(
             onSummon: { [weak self] in self?.summonToCenter() },
             onToggleSleep: { [weak self] in self?.toggleSleep() },
             onToggleInteractive: { [weak self] in self?.toggleInteractive() },
+            onSelectSkin: { [weak self] skin in self?.selectSkin(skin) },
             onQuit: { NSApp.terminate(nil) }
         )
+        
+        // Listen globally for typing cadence and Enter key
+        setupKeyObserver()
         
         // Initial ledge calculation
         refreshLedges()
@@ -53,6 +58,20 @@ public final class CytoController: @unchecked Sendable {
         self.lastFrameTime = Date()
         self.displayTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
             self?.tick()
+        }
+    }
+    
+    private func setupKeyObserver() {
+        keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
+            guard let self = self else { return }
+            
+            // Register typing activity (triggers curious look and ear twitch)
+            self.entity.registerUserTyping()
+            
+            // Check for Enter / Return (keyCode 36 is Return, 76 is numpad Enter)
+            if event.keyCode == 36 || event.keyCode == 76 {
+                self.entity.registerEnterPressed()
+            }
         }
     }
     
@@ -79,18 +98,50 @@ public final class CytoController: @unchecked Sendable {
         let (focusTier, _) = activityEngine.updateFocusTier()
         entity.focusTier = focusTier
         
-        // 3. Eye Gaze Tracking (look towards mouse cursor)
-        let mouseLoc = NSEvent.mouseLocation
-        let dx = mouseLoc.x - entity.position.x
-        let dy = mouseLoc.y - (entity.position.y + entity.size.height * 0.5)
-        let dist = max(1.0, hypot(dx, dy))
-        let maxGaze: CGFloat = 3.5
-        entity.eyeOffset = CGPoint(
-            x: (dx / dist) * min(maxGaze, dist * 0.05),
-            y: (dy / dist) * min(maxGaze, dist * 0.05)
-        )
+        // 3. Typing Curiosity Timers
+        if entity.typingTimer > 0 {
+            entity.typingTimer -= Double(dt)
+            if entity.typingTimer <= 0 {
+                entity.isTypingObserved = false
+                entity.curiousTilt = 0.0
+            }
+        }
         
-        // 4. Natural Blinking Loop
+        // 4. Speech Bubble Timer
+        if entity.speechBubbleTimer > 0 {
+            entity.speechBubbleTimer -= Double(dt)
+            if entity.speechBubbleTimer <= 0 {
+                entity.speechBubbleText = nil
+            }
+        }
+        
+        // 5. Tail and Ear Phases
+        entity.tailPhase += dt * 3.5
+        if entity.tailPhase > .pi * 2.0 {
+            entity.tailPhase -= .pi * 2.0
+        }
+        entity.earTwitchPhase += dt * 4.0
+        if entity.earTwitchPhase > .pi * 2.0 {
+            entity.earTwitchPhase -= .pi * 2.0
+        }
+        
+        // 6. Eye Gaze Tracking (look towards mouse cursor or look down intently when user types)
+        if entity.isTypingObserved {
+            // Looking curiously slightly down toward the keyboard/active window
+            entity.eyeOffset = CGPoint(x: 0, y: -2.0)
+        } else {
+            let mouseLoc = NSEvent.mouseLocation
+            let dx = mouseLoc.x - entity.position.x
+            let dy = mouseLoc.y - (entity.position.y + entity.size.height * 0.5)
+            let dist = max(1.0, hypot(dx, dy))
+            let maxGaze: CGFloat = 3.5
+            entity.eyeOffset = CGPoint(
+                x: (dx / dist) * min(maxGaze, dist * 0.05),
+                y: (dy / dist) * min(maxGaze, dist * 0.05)
+            )
+        }
+        
+        // 7. Natural Blinking Loop
         entity.blinkTimer -= Double(dt)
         if entity.blinkTimer <= 0 {
             entity.blinkFactor = 1.0
@@ -99,31 +150,32 @@ public final class CytoController: @unchecked Sendable {
             entity.blinkFactor = max(0.0, entity.blinkFactor - CGFloat(dt * 6.0))
         }
         
-        // 5. Behavioral Decision State Machine
+        // 8. Behavioral Decision State Machine
         entity.stateTimer += Double(dt)
         if entity.stateTimer >= entity.stateDuration && entity.state.allowsDirectMotion && !entity.isBeingInteractedWith {
             decideNextBehavior()
         }
         
-        // 6. Kinematics & Physics Step
+        // 9. Kinematics & Physics Step
         physicsEngine.update(entity: entity, deltaTime: dt, ledges: cachedLedges, screenBounds: screen.frame)
         
-        // 7. Synchronize Window Origin with Entity Physics Position
+        // 10. Synchronize Window Origin with Entity Physics Position
         let targetOrigin = NSPoint(
             x: entity.position.x - OverlayPanel.defaultSize.width / 2.0,
             y: entity.position.y - 6.0
         )
         panel.setFrameOrigin(targetOrigin)
         
-        // 8. Sync Menu Bar Status
+        // 11. Sync Menu Bar Status
         menuBarController?.update(
             mood: entity.mood,
             focus: entity.focusTier,
+            skin: entity.skin,
             isSleeping: entity.state == .sleeping,
             isInteractive: isInteractive
         )
         
-        // 9. Trigger redraw
+        // 12. Trigger redraw
         view.needsDisplay = true
     }
     
@@ -168,6 +220,11 @@ public final class CytoController: @unchecked Sendable {
         entity.transition(to: .walking, duration: Double.random(in: 2.0...5.0))
     }
     
+    public func selectSkin(_ skin: AnimeSkin) {
+        entity.skin = skin
+        entity.applySquish(x: 1.2, y: 0.8)
+    }
+    
     public func summonToCenter() {
         guard let screen = NSScreen.main else { return }
         let center = CGPoint(x: screen.frame.midX, y: screen.frame.midY)
@@ -189,5 +246,11 @@ public final class CytoController: @unchecked Sendable {
     public func toggleInteractive() {
         isInteractive.toggle()
         overlayPanel?.ignoresMouseEvents = !isInteractive
+    }
+    
+    deinit {
+        if let monitor = keyMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
     }
 }

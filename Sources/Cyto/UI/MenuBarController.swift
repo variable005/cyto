@@ -5,22 +5,26 @@ public final class MenuBarController {
     private let onSummon: () -> Void
     private let onToggleSleep: () -> Void
     private let onToggleInteractive: () -> Void
+    private let onSelectSkin: (AnimeSkin) -> Void
     private let onQuit: () -> Void
     
     private var moodItem: NSMenuItem?
     private var focusItem: NSMenuItem?
     private var sleepToggleItem: NSMenuItem?
     private var interactiveToggleItem: NSMenuItem?
+    private var skinMenuItems: [AnimeSkin: NSMenuItem] = [:]
     
     public init(
         onSummon: @escaping () -> Void,
         onToggleSleep: @escaping () -> Void,
         onToggleInteractive: @escaping () -> Void,
+        onSelectSkin: @escaping (AnimeSkin) -> Void,
         onQuit: @escaping () -> Void
     ) {
         self.onSummon = onSummon
         self.onToggleSleep = onToggleSleep
         self.onToggleInteractive = onToggleInteractive
+        self.onSelectSkin = onSelectSkin
         self.onQuit = onQuit
         setupStatusBar()
     }
@@ -51,6 +55,22 @@ public final class MenuBarController {
         
         menu.addItem(NSMenuItem.separator())
         
+        // Anime Skins Submenu
+        let skinsMenu = NSMenu()
+        let skinsItem = NSMenuItem(title: "Anime Design", action: nil, keyEquivalent: "")
+        skinsItem.submenu = skinsMenu
+        
+        for skin in AnimeSkin.allCases {
+            let item = NSMenuItem(title: skin.displayName, action: #selector(skinSelected(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = skin
+            skinsMenu.addItem(item)
+            skinMenuItems[skin] = item
+        }
+        menu.addItem(skinsItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
         let interactiveItem = NSMenuItem(title: "Clickable: Enabled", action: #selector(interactiveClicked), keyEquivalent: "i")
         interactiveItem.target = self
         menu.addItem(interactiveItem)
@@ -74,11 +94,21 @@ public final class MenuBarController {
         statusItem?.menu = menu
     }
     
-    public func update(mood: CytoMood, focus: FocusTier, isSleeping: Bool, isInteractive: Bool) {
+    public func update(mood: CytoMood, focus: FocusTier, skin: AnimeSkin, isSleeping: Bool, isInteractive: Bool) {
         moodItem?.title = "Mood: \(mood.rawValue.capitalized)"
         focusItem?.title = "Focus: \(focus.rawValue.capitalized)"
         sleepToggleItem?.title = isSleeping ? "Wake Up" : "Put to Rest"
         interactiveToggleItem?.title = isInteractive ? "Clickable: Enabled" : "Clickable: Disabled (Pass-Through)"
+        
+        // Update checkmarks on skins
+        for (itemSkin, menuItem) in skinMenuItems {
+            menuItem.state = (itemSkin == skin) ? .on : .off
+        }
+    }
+    
+    @objc private func skinSelected(_ sender: NSMenuItem) {
+        guard let skin = sender.representedObject as? AnimeSkin else { return }
+        onSelectSkin(skin)
     }
     
     @objc private func summonClicked() {
