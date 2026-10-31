@@ -1,5 +1,7 @@
 # Cyto
 
+![Cyto Desktop Pet Banner](Cyto%20Desktop%20Pet%20README%20Banner.png)
+
 Cyto is an offline, native macOS desktop companion and ambient lifeform designed to introduce organic physical behavior and focus dynamics directly onto the operating system canvas.
 
 Unlike standard utilities or static status bar apps, Cyto operates as a living digital entity suspended in user-space. It interacts directly with the spatial boundaries of open application windows, dynamically adjusting its behavioral states, physical movements, and energy levels according to user workflow cadence and system idle metrics.
