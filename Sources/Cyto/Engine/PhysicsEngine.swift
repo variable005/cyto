@@ -2,24 +2,37 @@ import Foundation
 import CoreGraphics
 
 public final class PhysicsEngine {
-    public var gravity: CGFloat = -1100.0 // points/sec^2
-    public var terminalVelocity: CGFloat = -1400.0
-    public var bounceElasticity: CGFloat = 0.35
-    public var groundFriction: CGFloat = 0.88
-    public var airFriction: CGFloat = 0.985
+    // Floatier, ethereal gravity for a ghost
+    public var gravity: CGFloat = -680.0
+    public var terminalVelocity: CGFloat = -750.0
+    public var bounceElasticity: CGFloat = 0.45
+    public var groundFriction: CGFloat = 0.90
+    public var airFriction: CGFloat = 0.97
     
     public init() {}
     
     public func update(entity: CytoEntity, deltaTime: CGFloat, ledges: [Ledge], screenBounds: CGRect) {
-        // 1. Recover squish back to neutral (spring physics)
-        let springConstant: CGFloat = 14.0
+        // 1. Recover squish back to neutral (ectoplasm elasticity)
+        let springConstant: CGFloat = 12.0
         entity.squishX += (1.0 - entity.squishX) * min(1.0, springConstant * deltaTime)
         entity.squishY += (1.0 - entity.squishY) * min(1.0, springConstant * deltaTime)
         
-        // 2. Breathing oscillation
-        entity.breathPhase += deltaTime * 2.5
-        if entity.breathPhase > .pi * 2.0 {
-            entity.breathPhase -= .pi * 2.0
+        // 2. Ghost floating and wisp phase oscillations
+        entity.floatPhase += deltaTime * 2.8
+        if entity.floatPhase > .pi * 2.0 {
+            entity.floatPhase -= .pi * 2.0
+        }
+        
+        entity.wispPhase += deltaTime * 5.0
+        if entity.wispPhase > .pi * 2.0 {
+            entity.wispPhase -= .pi * 2.0
+        }
+        
+        // Orbiting spirit flame (faster when typing)
+        let orbitSpeed = entity.isTypingObserved ? 4.5 : 2.2
+        entity.orbOrbitPhase += deltaTime * CGFloat(orbitSpeed)
+        if entity.orbOrbitPhase > .pi * 2.0 {
+            entity.orbOrbitPhase -= .pi * 2.0
         }
         
         // 3. Skip kinematic simulation if manually dragged
@@ -28,61 +41,57 @@ public final class PhysicsEngine {
             return
         }
         
-        // 4. In-air / falling simulation
+        // 4. In-air / floating simulation
         if !entity.state.isGrounded {
-            // Apply gravity
+            // Apply gentle floaty gravity
             entity.velocity.dy += gravity * deltaTime
             if entity.velocity.dy < terminalVelocity {
                 entity.velocity.dy = terminalVelocity
             }
             
-            // Air drag
+            // Air drag (gliding)
             entity.velocity.dx *= pow(airFriction, deltaTime * 60.0)
             
             // Position step
             entity.position.x += entity.velocity.dx * deltaTime
             entity.position.y += entity.velocity.dy * deltaTime
             
-            // Wall collisions (left/right screen borders)
+            // Wall collisions (left/right screen borders with soft rebound)
             let halfWidth = (entity.size.width * entity.squishX) / 2.0
             if entity.position.x - halfWidth < screenBounds.minX {
                 entity.position.x = screenBounds.minX + halfWidth
                 entity.velocity.dx = abs(entity.velocity.dx) * bounceElasticity
-                entity.applySquish(x: 0.75, y: 1.25)
+                entity.applySquish(x: 0.80, y: 1.20)
             } else if entity.position.x + halfWidth > screenBounds.maxX {
                 entity.position.x = screenBounds.maxX - halfWidth
                 entity.velocity.dx = -abs(entity.velocity.dx) * bounceElasticity
-                entity.applySquish(x: 0.75, y: 1.25)
+                entity.applySquish(x: 0.80, y: 1.20)
             }
             
-            // Ledge collision check (only when moving downwards)
+            // Ledge collision check (hovering down onto window headers)
             if entity.velocity.dy <= 0 {
                 let footX = entity.position.x
                 let footY = entity.position.y
                 
                 for ledge in ledges {
-                    // Check horizontal inclusion
                     if footX >= ledge.minX && footX <= ledge.maxX {
-                        // Check if foot is within landing tolerance above or just crossed the ledge
-                        let tolerance: CGFloat = max(16.0, abs(entity.velocity.dy * deltaTime) + 4.0)
-                        if footY >= ledge.topY - 8.0 && footY <= ledge.topY + tolerance {
-                            // Land on this ledge
+                        let tolerance: CGFloat = max(18.0, abs(entity.velocity.dy * deltaTime) + 6.0)
+                        if footY >= ledge.topY - 6.0 && footY <= ledge.topY + tolerance {
                             entity.position.y = ledge.topY
                             entity.currentLedgeY = ledge.topY
                             
-                            if abs(entity.velocity.dy) > 300.0 {
-                                // Impact bounce and squish
-                                entity.applySquish(x: 1.4, y: 0.6)
+                            if abs(entity.velocity.dy) > 220.0 {
+                                entity.applySquish(x: 1.30, y: 0.70)
                                 entity.transition(to: .bouncing, duration: 0.25)
                                 entity.velocity.dy = -entity.velocity.dy * bounceElasticity
-                                if abs(entity.velocity.dy) < 60.0 {
+                                if abs(entity.velocity.dy) < 50.0 {
                                     entity.velocity.dy = 0
                                     entity.transition(to: .idle)
                                 }
                             } else {
                                 entity.velocity.dy = 0
                                 entity.velocity.dx *= groundFriction
-                                entity.applySquish(x: 1.2, y: 0.8)
+                                entity.applySquish(x: 1.15, y: 0.85)
                                 entity.transition(to: .idle)
                             }
                             return
@@ -91,15 +100,14 @@ public final class PhysicsEngine {
                 }
             }
         } else {
-            // Grounded state
-            // Verify current ledge still exists under its feet
+            // Grounded state (hovering gracefully along the ledge)
             var stillSupported = false
             let footX = entity.position.x
             let footY = entity.position.y
             
             for ledge in ledges {
                 if footX >= ledge.minX && footX <= ledge.maxX {
-                    if abs(footY - ledge.topY) < 6.0 {
+                    if abs(footY - ledge.topY) < 8.0 {
                         stillSupported = true
                         entity.position.y = ledge.topY
                         break
@@ -108,21 +116,20 @@ public final class PhysicsEngine {
             }
             
             if !stillSupported {
-                // Window moved or closed! Cyto falls off
+                // Window moved or closed! Ghost floats gently downward
                 entity.currentLedgeY = nil
                 entity.transition(to: .falling)
-                entity.velocity.dy = -100.0
-                entity.applySquish(x: 0.85, y: 1.15)
+                entity.velocity.dy = -60.0
+                entity.applySquish(x: 0.90, y: 1.10)
                 return
             }
             
-            // Horizontal friction on ground
+            // Horizontal glide friction
             entity.velocity.dx *= pow(groundFriction, deltaTime * 60.0)
             entity.position.x += entity.velocity.dx * deltaTime
             
-            // Walking animation phase step
             if entity.state == .walking {
-                entity.walkPhase += deltaTime * 8.0
+                entity.walkPhase += deltaTime * 6.0
             }
         }
     }
