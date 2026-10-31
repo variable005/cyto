@@ -1,7 +1,7 @@
 import AppKit
 
 public final class OverlayPanel: NSPanel {
-    public static let defaultSize = CGSize(width: 124, height: 132)
+    public static let defaultSize = CGSize(width: 136, height: 144)
     
     public init(initialPosition: CGPoint) {
         let contentRect = NSRect(
