@@ -5,26 +5,26 @@ public final class MenuBarController {
     private let onSummon: () -> Void
     private let onToggleSleep: () -> Void
     private let onToggleInteractive: () -> Void
-    private let onSelectCharacter: (CharacterID) -> Void
+    private let onSelectAura: (GhostAura) -> Void
     private let onQuit: () -> Void
     
     private var moodItem: NSMenuItem?
     private var focusItem: NSMenuItem?
     private var sleepToggleItem: NSMenuItem?
     private var interactiveToggleItem: NSMenuItem?
-    private var characterMenuItems: [CharacterID: NSMenuItem] = [:]
+    private var auraMenuItems: [GhostAura: NSMenuItem] = [:]
     
     public init(
         onSummon: @escaping () -> Void,
         onToggleSleep: @escaping () -> Void,
         onToggleInteractive: @escaping () -> Void,
-        onSelectCharacter: @escaping (CharacterID) -> Void,
+        onSelectAura: @escaping (GhostAura) -> Void,
         onQuit: @escaping () -> Void
     ) {
         self.onSummon = onSummon
         self.onToggleSleep = onToggleSleep
         self.onToggleInteractive = onToggleInteractive
-        self.onSelectCharacter = onSelectCharacter
+        self.onSelectAura = onSelectAura
         self.onQuit = onQuit
         setupStatusBar()
     }
@@ -38,7 +38,7 @@ public final class MenuBarController {
         
         let menu = NSMenu()
         
-        let titleItem = NSMenuItem(title: "Cyto Desktop Companion", action: nil, keyEquivalent: "")
+        let titleItem = NSMenuItem(title: "Cyto Ghost Companion", action: nil, keyEquivalent: "")
         titleItem.isEnabled = false
         menu.addItem(titleItem)
         menu.addItem(NSMenuItem.separator())
@@ -55,34 +55,20 @@ public final class MenuBarController {
         
         menu.addItem(NSMenuItem.separator())
         
-        // Character Roster Submenu organized by category
-        let rosterMenu = NSMenu()
-        let rosterItem = NSMenuItem(title: "Characters", action: nil, keyEquivalent: "")
-        rosterItem.submenu = rosterMenu
+        // Ghost Aura Menu
+        let auraMenu = NSMenu()
+        let auraItem = NSMenuItem(title: "Ghost Aura", action: nil, keyEquivalent: "")
+        auraItem.submenu = auraMenu
         
-        for category in CharacterCategory.allCases {
-            let catHeader = NSMenuItem(title: category.rawValue, action: nil, keyEquivalent: "")
-            catHeader.isEnabled = false
-            rosterMenu.addItem(catHeader)
-            
-            let charactersInCategory = CharacterID.allCases.filter { $0.category == category }
-            for char in charactersInCategory {
-                let label = "\(char.name) — \(char.title)"
-                let item = NSMenuItem(title: label, action: #selector(characterSelected(_:)), keyEquivalent: "")
-                item.target = self
-                item.representedObject = char
-                rosterMenu.addItem(item)
-                characterMenuItems[char] = item
-            }
-            rosterMenu.addItem(NSMenuItem.separator())
+        for aura in GhostAura.allCases {
+            let item = NSMenuItem(title: aura.displayName, action: #selector(auraSelected(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = aura
+            auraMenu.addItem(item)
+            auraMenuItems[aura] = item
         }
+        menu.addItem(auraItem)
         
-        // Remove trailing separator if present
-        if let lastItem = rosterMenu.items.last, lastItem.isSeparatorItem {
-            rosterMenu.removeItem(lastItem)
-        }
-        
-        menu.addItem(rosterItem)
         menu.addItem(NSMenuItem.separator())
         
         let interactiveItem = NSMenuItem(title: "Clickable: Enabled", action: #selector(interactiveClicked), keyEquivalent: "i")
@@ -108,20 +94,20 @@ public final class MenuBarController {
         statusItem?.menu = menu
     }
     
-    public func update(mood: CytoMood, focus: FocusTier, character: CharacterID, isSleeping: Bool, isInteractive: Bool) {
+    public func update(mood: CytoMood, focus: FocusTier, aura: GhostAura, isSleeping: Bool, isInteractive: Bool) {
         moodItem?.title = "Mood: \(mood.rawValue.capitalized)"
         focusItem?.title = "Focus: \(focus.rawValue.capitalized)"
         sleepToggleItem?.title = isSleeping ? "Wake Up" : "Put to Rest"
         interactiveToggleItem?.title = isInteractive ? "Clickable: Enabled" : "Clickable: Disabled (Pass-Through)"
         
-        for (charID, menuItem) in characterMenuItems {
-            menuItem.state = (charID == character) ? .on : .off
+        for (itemAura, menuItem) in auraMenuItems {
+            menuItem.state = (itemAura == aura) ? .on : .off
         }
     }
     
-    @objc private func characterSelected(_ sender: NSMenuItem) {
-        guard let char = sender.representedObject as? CharacterID else { return }
-        onSelectCharacter(char)
+    @objc private func auraSelected(_ sender: NSMenuItem) {
+        guard let aura = sender.representedObject as? GhostAura else { return }
+        onSelectAura(aura)
     }
     
     @objc private func summonClicked() {
