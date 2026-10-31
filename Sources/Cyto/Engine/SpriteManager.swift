@@ -60,7 +60,7 @@ public final class SpriteManager {
         
         // 4. Bundle resources
         if let bundleURL = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: "Characters"),
-           let img = NSImage(contentsOfURL: bundleURL) {
+           let img = NSImage(contentsOf: bundleURL) {
             return img
         }
         
