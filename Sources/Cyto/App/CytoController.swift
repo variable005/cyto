@@ -223,9 +223,9 @@ public final class CytoController: @unchecked Sendable {
             entity.blinkFactor = max(0.0, entity.blinkFactor - CGFloat(dt * 6.0))
         }
         
-        // 7. Behavioral Decision State Machine
+        // 7. Behavioral Decision State Machine (paused while user is typing)
         entity.stateTimer += Double(dt)
-        if entity.stateTimer >= entity.stateDuration && entity.state.allowsDirectMotion && !entity.isBeingInteractedWith {
+        if entity.stateTimer >= entity.stateDuration && entity.state.allowsDirectMotion && !entity.isBeingInteractedWith && !entity.isTypingObserved {
             decideNextBehavior()
         }
         

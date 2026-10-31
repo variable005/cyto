@@ -17,3 +17,6 @@ public enum JellyAccessory: String, CaseIterable, Sendable {
     case coffee = "Coffee Mug"
     case coding = "Mini Terminal </>"
 }
+
+public typealias CytoExpression = JellyExpression
+public typealias CytoAccessory = JellyAccessory

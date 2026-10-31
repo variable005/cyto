@@ -36,8 +36,6 @@ public enum CytoMood: String, Sendable {
     case happy
     case sleepy
     case playful
-    case bored
-    case hyperactive
 }
 
 public enum FocusTier: String, Sendable {

@@ -2,9 +2,6 @@ import Foundation
 import CoreGraphics
 
 public final class ActivityEngine {
-    private var lastKeyTimestamp: Date = Date()
-    private var lastIdleSeconds: Double = 0.0
-    
     public init() {}
     
     /// Queries the OS for seconds since last user input without intercepting any content.
@@ -19,7 +16,6 @@ public final class ActivityEngine {
         )
         
         let minIdle = min(keyIdle, mouseIdle)
-        self.lastIdleSeconds = minIdle
         
         let tier: FocusTier
         if minIdle < 2.5 {

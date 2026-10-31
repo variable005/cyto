@@ -14,7 +14,6 @@ public final class CytoEntity {
     public var accessory: JellyAccessory
     
     public var facingDirection: CGFloat // -1.0 = left, 1.0 = right
-    public var eyeTarget: CGPoint
     public var eyeOffset: CGPoint
     public var blinkFactor: CGFloat // 0.0 open, 1.0 closed
     public var squishX: CGFloat
@@ -42,7 +41,6 @@ public final class CytoEntity {
     public var currentLedgeY: CGFloat?
     public var isBeingInteractedWith: Bool = false
     public var affection: CGFloat = 0.5
-    public var energy: CGFloat = 0.95
     
     public init(initialPosition: CGPoint) {
         self.position = initialPosition
@@ -55,7 +53,6 @@ public final class CytoEntity {
         self.accessory = .none
         
         self.facingDirection = 1.0
-        self.eyeTarget = .zero
         self.eyeOffset = .zero
         self.blinkFactor = 0.0
         self.squishX = 1.0
@@ -70,15 +67,6 @@ public final class CytoEntity {
         self.blinkTimer = Double.random(in: 2.0...5.0)
         self.breathPhase = 0.0
         self.walkPhase = 0.0
-    }
-    
-    public var boundingBox: CGRect {
-        CGRect(
-            x: position.x - (size.width * squishX) / 2.0,
-            y: position.y,
-            width: size.width * squishX,
-            height: size.height * squishY
-        )
     }
     
     public func applySquish(x: CGFloat, y: CGFloat) {

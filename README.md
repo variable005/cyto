@@ -183,7 +183,6 @@ erDiagram
         Double walkPhase
         Bool isBeingInteractedWith
         CGFloat affection
-        CGFloat energy
     }
 
     LEDGE {
