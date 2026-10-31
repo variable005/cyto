@@ -5,26 +5,30 @@ public final class MenuBarController {
     private let onSummon: () -> Void
     private let onToggleSleep: () -> Void
     private let onToggleInteractive: () -> Void
-    private let onSelectAura: (GhostAura) -> Void
+    private let onSelectExpression: (JellyExpression) -> Void
+    private let onSelectAccessory: (JellyAccessory) -> Void
     private let onQuit: () -> Void
     
     private var moodItem: NSMenuItem?
     private var focusItem: NSMenuItem?
     private var sleepToggleItem: NSMenuItem?
     private var interactiveToggleItem: NSMenuItem?
-    private var auraMenuItems: [GhostAura: NSMenuItem] = [:]
+    private var expressionMenuItems: [JellyExpression: NSMenuItem] = [:]
+    private var accessoryMenuItems: [JellyAccessory: NSMenuItem] = [:]
     
     public init(
         onSummon: @escaping () -> Void,
         onToggleSleep: @escaping () -> Void,
         onToggleInteractive: @escaping () -> Void,
-        onSelectAura: @escaping (GhostAura) -> Void,
+        onSelectExpression: @escaping (JellyExpression) -> Void,
+        onSelectAccessory: @escaping (JellyAccessory) -> Void,
         onQuit: @escaping () -> Void
     ) {
         self.onSummon = onSummon
         self.onToggleSleep = onToggleSleep
         self.onToggleInteractive = onToggleInteractive
-        self.onSelectAura = onSelectAura
+        self.onSelectExpression = onSelectExpression
+        self.onSelectAccessory = onSelectAccessory
         self.onQuit = onQuit
         setupStatusBar()
     }
@@ -33,12 +37,12 @@ public final class MenuBarController {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         guard let button = statusItem?.button else { return }
         
-        button.title = "cyto"
+        button.title = "jelly"
         button.font = NSFont.monospacedSystemFont(ofSize: 12.0, weight: .semibold)
         
         let menu = NSMenu()
         
-        let titleItem = NSMenuItem(title: "Cyto Ghost Companion", action: nil, keyEquivalent: "")
+        let titleItem = NSMenuItem(title: "Jelly The Desktop Ghost", action: nil, keyEquivalent: "")
         titleItem.isEnabled = false
         menu.addItem(titleItem)
         menu.addItem(NSMenuItem.separator())
@@ -55,19 +59,33 @@ public final class MenuBarController {
         
         menu.addItem(NSMenuItem.separator())
         
-        // Ghost Aura Menu
-        let auraMenu = NSMenu()
-        let auraItem = NSMenuItem(title: "Ghost Aura", action: nil, keyEquivalent: "")
-        auraItem.submenu = auraMenu
+        // Expressions Submenu
+        let exprMenu = NSMenu()
+        let exprItem = NSMenuItem(title: "Expression", action: nil, keyEquivalent: "")
+        exprItem.submenu = exprMenu
         
-        for aura in GhostAura.allCases {
-            let item = NSMenuItem(title: aura.displayName, action: #selector(auraSelected(_:)), keyEquivalent: "")
+        for expr in JellyExpression.allCases {
+            let item = NSMenuItem(title: expr.rawValue, action: #selector(expressionSelected(_:)), keyEquivalent: "")
             item.target = self
-            item.representedObject = aura
-            auraMenu.addItem(item)
-            auraMenuItems[aura] = item
+            item.representedObject = expr
+            exprMenu.addItem(item)
+            expressionMenuItems[expr] = item
         }
-        menu.addItem(auraItem)
+        menu.addItem(exprItem)
+        
+        // Accessories Submenu
+        let accMenu = NSMenu()
+        let accItem = NSMenuItem(title: "Accessory", action: nil, keyEquivalent: "")
+        accItem.submenu = accMenu
+        
+        for acc in JellyAccessory.allCases {
+            let item = NSMenuItem(title: acc.rawValue, action: #selector(accessorySelected(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = acc
+            accMenu.addItem(item)
+            accessoryMenuItems[acc] = item
+        }
+        menu.addItem(accItem)
         
         menu.addItem(NSMenuItem.separator())
         
@@ -87,27 +105,42 @@ public final class MenuBarController {
         
         menu.addItem(NSMenuItem.separator())
         
-        let quitItem = NSMenuItem(title: "Quit Cyto", action: #selector(quitClicked), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Quit Jelly", action: #selector(quitClicked), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
         
         statusItem?.menu = menu
     }
     
-    public func update(mood: CytoMood, focus: FocusTier, aura: GhostAura, isSleeping: Bool, isInteractive: Bool) {
+    public func update(
+        mood: CytoMood,
+        focus: FocusTier,
+        expression: JellyExpression,
+        accessory: JellyAccessory,
+        isSleeping: Bool,
+        isInteractive: Bool
+    ) {
         moodItem?.title = "Mood: \(mood.rawValue.capitalized)"
         focusItem?.title = "Focus: \(focus.rawValue.capitalized)"
         sleepToggleItem?.title = isSleeping ? "Wake Up" : "Put to Rest"
         interactiveToggleItem?.title = isInteractive ? "Clickable: Enabled" : "Clickable: Disabled (Pass-Through)"
         
-        for (itemAura, menuItem) in auraMenuItems {
-            menuItem.state = (itemAura == aura) ? .on : .off
+        for (itemExpr, menuItem) in expressionMenuItems {
+            menuItem.state = (itemExpr == expression) ? .on : .off
+        }
+        for (itemAcc, menuItem) in accessoryMenuItems {
+            menuItem.state = (itemAcc == accessory) ? .on : .off
         }
     }
     
-    @objc private func auraSelected(_ sender: NSMenuItem) {
-        guard let aura = sender.representedObject as? GhostAura else { return }
-        onSelectAura(aura)
+    @objc private func expressionSelected(_ sender: NSMenuItem) {
+        guard let expr = sender.representedObject as? JellyExpression else { return }
+        onSelectExpression(expr)
+    }
+    
+    @objc private func accessorySelected(_ sender: NSMenuItem) {
+        guard let acc = sender.representedObject as? JellyAccessory else { return }
+        onSelectAccessory(acc)
     }
     
     @objc private func summonClicked() {
