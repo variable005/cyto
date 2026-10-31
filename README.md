@@ -138,96 +138,147 @@ flowchart TD
 
 ---
 
-## Entity-Relationship Diagram (ERD)
+## Domain Model and Component Relationships
 
-The domain model represents the object-relational mapping of entity states, environmental physics surfaces, and rendering coordinates.
+The domain model outlines the object-oriented runtime architecture, illustrating how the core controller binds telemetry engines, dynamic entity states, physics ledge boundaries, and AppKit presentation layers.
 
 ```mermaid
-erDiagram
-    CYTO_CONTROLLER ||--|| CYTO_ENTITY : manages
-    CYTO_CONTROLLER ||--|| WINDOW_TRACKER : queries
-    CYTO_CONTROLLER ||--|| PHYSICS_ENGINE : steps
-    CYTO_CONTROLLER ||--|| ACTIVITY_ENGINE : samples
-    CYTO_CONTROLLER ||--|| OVERLAY_PANEL : positions
-    CYTO_CONTROLLER ||--|| MENU_BAR_CONTROLLER : syncs
-    OVERLAY_PANEL ||--|| CYTO_VIEW : embeds
-    CYTO_VIEW ||--|| CYTO_ENTITY : renders
-
-    CYTO_ENTITY ||--|| CYTO_STATE : exhibits
-    CYTO_ENTITY ||--|| CYTO_MOOD : experiences
-    CYTO_ENTITY ||--|| FOCUS_TIER : reflects
-    CYTO_ENTITY ||--|| JELLY_EXPRESSION : displays
-    CYTO_ENTITY ||--|| JELLY_ACCESSORY : equips
-    CYTO_ENTITY ||--o{ LEDGE : perches_on
-
-    CYTO_ENTITY {
-        CGPoint position
-        CGVector velocity
-        CGSize size
-        CGFloat floatPhase
-        CGFloat wispPhase
-        CGFloat headphoneGlowPhase
-        CGPoint eyeOffset
-        CGFloat blinkFactor
-        CGFloat squishX
-        CGFloat squishY
-        Double typingTimer
-        CGFloat curiousTilt
-        String speechBubbleText
-        Double speechBubbleTimer
-        Double speechBubbleMaxDuration
-        Double stateTimer
-        Double stateDuration
-        Double blinkTimer
-        Double breathPhase
-        Double walkPhase
-        Bool isBeingInteractedWith
-        CGFloat affection
+classDiagram
+    class CytoController {
+        -CytoEntity entity
+        -WindowTracker windowTracker
+        -PhysicsEngine physicsEngine
+        -ActivityEngine activityEngine
+        -OverlayPanel overlayPanel
+        -CytoView cytoView
+        -MenuBarController menuBarController
+        +start()
+        +tick()
     }
 
-    LEDGE {
-        CGRect rect
-        UInt32 windowID
-        String applicationName
-        String windowTitle
-        Int32 windowLayer
-        Bool isWalkable
+    class CytoEntity {
+        +CGPoint position
+        +CGVector velocity
+        +CGSize size
+        +CGFloat squishX
+        +CGFloat squishY
+        +CGFloat floatPhase
+        +CGFloat wispPhase
+        +CGFloat headphoneGlowPhase
+        +CGPoint eyeOffset
+        +CGFloat blinkFactor
+        +Double typingTimer
+        +CGFloat curiousTilt
+        +String speechBubbleText
+        +Double speechBubbleTimer
+        +Double stateTimer
+        +Double stateDuration
+        +Double blinkTimer
+        +Double breathPhase
+        +Double walkPhase
+        +Bool isBeingInteractedWith
+        +CGFloat affection
     }
 
-    CYTO_STATE {
-        String rawValue "falling | perched | walking | dragged | sleeping | sitting | petted | mischievous"
-        Bool isGrounded
-        Bool allowsDirectMotion
+    class Ledge {
+        +CGRect rect
+        +CGFloat topY
+        +CGFloat minX
+        +CGFloat maxX
     }
 
-    CYTO_MOOD {
-        String rawValue "calm | happy | playful | sleepy | focused"
+    class CytoState {
+        <<enumeration>>
+        falling
+        perched
+        walking
+        dragged
+        sleeping
+        sitting
+        petted
+        mischievous
     }
 
-    FOCUS_TIER {
-        String rawValue "inFlow | steady | wandering | idle"
+    class CytoMood {
+        <<enumeration>>
+        calm
+        happy
+        playful
+        sleepy
+        focused
     }
 
-    JELLY_EXPRESSION {
-        String rawValue "neutral | happy | excited | curious | sleepy | focused | surprised | confused"
+    class FocusTier {
+        <<enumeration>>
+        inFlow
+        steady
+        wandering
+        idle
     }
 
-    JELLY_ACCESSORY {
-        String rawValue "none | coffee | coding"
+    class JellyExpression {
+        <<enumeration>>
+        neutral
+        happy
+        excited
+        curious
+        sleepy
+        focused
+        surprised
+        confused
     }
 
-    OVERLAY_PANEL {
-        NSRect frame
-        Int windowNumber
-        Bool ignoresMouseEvents
+    class JellyAccessory {
+        <<enumeration>>
+        none
+        coffee
+        coding
     }
 
-    CYTO_VIEW {
-        CGPoint dragStartMouseScreen
-        CGPoint dragStartEntityPos
-        Date lastDragTime
-        Int petCounter
+    class OverlayPanel {
+        +NSRect frame
+        +Int windowNumber
+        +Bool ignoresMouseEvents
     }
+
+    class CytoView {
+        +CGPoint dragStartMouseScreen
+        +CGPoint dragStartEntityPos
+        +Date lastDragTime
+        +Int petCounter
+    }
+
+    class WindowTracker {
+        +fetchWalkableLedges()
+    }
+
+    class PhysicsEngine {
+        +update()
+    }
+
+    class ActivityEngine {
+        +updateFocusTier()
+    }
+
+    class MenuBarController {
+        +update()
+    }
+
+    CytoController --> CytoEntity : manages
+    CytoController --> WindowTracker : queries
+    CytoController --> PhysicsEngine : steps
+    CytoController --> ActivityEngine : samples
+    CytoController --> OverlayPanel : positions
+    CytoController --> MenuBarController : syncs
+    OverlayPanel *-- CytoView : embeds
+    CytoView --> CytoEntity : renders
+
+    CytoEntity --> CytoState : exhibits
+    CytoEntity --> CytoMood : experiences
+    CytoEntity --> FocusTier : reflects
+    CytoEntity --> JellyExpression : displays
+    CytoEntity --> JellyAccessory : equips
+    CytoEntity ..> Ledge : perches on
 ```
 
 ---
