@@ -8,7 +8,10 @@ public final class CytoEntity {
     public var state: CytoState
     public var mood: CytoMood
     public var focusTier: FocusTier
-    public var aura: GhostAura
+    
+    // Jelly Character Identity
+    public var expression: JellyExpression
+    public var accessory: JellyAccessory
     
     public var facingDirection: CGFloat // -1.0 = left, 1.0 = right
     public var eyeTarget: CGPoint
@@ -17,10 +20,11 @@ public final class CytoEntity {
     public var squishX: CGFloat
     public var squishY: CGFloat
     
-    // Ghost Ethereal Waves & Float Animation
+    // Floating, Scarf & Headphone Dynamics
     public var floatPhase: CGFloat
     public var wispPhase: CGFloat
-    public var orbOrbitPhase: CGFloat
+    public var scarfFlutterPhase: CGFloat
+    public var headphoneGlowPhase: CGFloat
     
     public var stateTimer: TimeInterval
     public var stateDuration: TimeInterval
@@ -37,17 +41,19 @@ public final class CytoEntity {
     
     public var currentLedgeY: CGFloat?
     public var isBeingInteractedWith: Bool = false
+    public var isPuddleLoaf: Bool = false
     public var affection: CGFloat = 0.5
-    public var energy: CGFloat = 0.9
+    public var energy: CGFloat = 0.95
     
     public init(initialPosition: CGPoint) {
         self.position = initialPosition
         self.velocity = CGVector(dx: 0, dy: 0)
-        self.size = CGSize(width: 72, height: 80)
+        self.size = CGSize(width: 82, height: 88)
         self.state = .falling
         self.mood = .calm
         self.focusTier = .steady
-        self.aura = .moonlight
+        self.expression = .neutral
+        self.accessory = .none
         
         self.facingDirection = 1.0
         self.eyeTarget = .zero
@@ -58,7 +64,8 @@ public final class CytoEntity {
         
         self.floatPhase = 0.0
         self.wispPhase = 0.0
-        self.orbOrbitPhase = 0.0
+        self.scarfFlutterPhase = 0.0
+        self.headphoneGlowPhase = 0.0
         
         self.stateTimer = 0.0
         self.stateDuration = 4.0
@@ -89,33 +96,44 @@ public final class CytoEntity {
     public func registerUserTyping() {
         self.isTypingObserved = true
         self.typingTimer = 1.6
+        self.isPuddleLoaf = false
         
+        // Tilt head curiously towards keyboard
         if abs(curiousTilt) < 0.01 {
             curiousTilt = Bool.random() ? 0.12 : -0.12
+        }
+        
+        // Expression responds to typing flow
+        if focusTier == .inFlow {
+            self.expression = .focused // > < focused face
+        } else {
+            self.expression = .curious // cute curious face with head tilt
         }
     }
     
     public func registerEnterPressed() {
-        let ghostQuotes = [
+        self.isPuddleLoaf = false
+        self.expression = .excited // Excited sparkling face!
+        
+        let jellyQuotes = [
             "Boo!",
-            "Spooky clean!",
-            "Soul logic!",
-            "Ooooh~",
-            "Haunted code!",
-            "Phantom commit!",
-            "Ethereal!",
+            "You got this!",
+            "Code compiled!",
+            "Super clean!",
+            "Shipped it!",
             "Giggle~",
-            "Shiver me bytes!"
+            "Magic executed!",
+            "Nice logic!"
         ]
         
-        let chosen = ghostQuotes.randomElement() ?? "Boo!"
+        let chosen = jellyQuotes.randomElement() ?? "You got this!"
         say(chosen, duration: 2.8)
         
-        // Gentle floaty hop on enter
+        // Joyful floaty hop with headphone glow pulse
         if state.isGrounded {
-            self.velocity.dy = 180.0
+            self.velocity.dy = 200.0
             self.transition(to: .falling, duration: 0.5)
-            self.applySquish(x: 0.85, y: 1.20)
+            self.applySquish(x: 0.84, y: 1.22)
         }
     }
     
@@ -128,15 +146,32 @@ public final class CytoEntity {
         switch newState {
         case .sleeping:
             self.mood = .sleepy
+            self.expression = .sleepy
+            self.isPuddleLoaf = true
+            self.applySquish(x: 1.35, y: 0.65) // Melt into titlebar puddle
+        case .sitting:
+            self.expression = .happy // ^ ^ sitting resting pose
+            self.isPuddleLoaf = false
         case .walking:
             self.walkPhase = 0.0
+            self.expression = .neutral
+            self.isPuddleLoaf = false
         case .petted:
             self.affection = min(1.0, affection + 0.1)
             self.mood = .happy
+            self.expression = .happy
+            self.isPuddleLoaf = false
         case .mischievous:
             self.mood = .playful
+            self.expression = .excited
+        case .dragged:
+            self.expression = .surprised
+            self.isPuddleLoaf = false
         default:
-            break
+            if !isTypingObserved {
+                self.expression = .neutral
+            }
+            self.isPuddleLoaf = false
         }
     }
 }
