@@ -16,5 +16,4 @@ public enum JellyAccessory: String, CaseIterable, Sendable {
     case none = "None"
     case coffee = "Coffee Mug"
     case coding = "Mini Terminal </>"
-    case nightcap = "Sleep Nightcap"
 }

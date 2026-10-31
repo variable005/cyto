@@ -23,6 +23,7 @@ public final class CytoController: @unchecked Sendable {
     private var lastKeyRegisteredTime: Date = .distantPast
     private var burstKeystrokeCount: Int = 0
     private var hasCelebratedCurrentBurst: Bool = false
+    private var lastSpokenTime: Date = Date()
     
     public init() {
         let initialPoint = CGPoint(x: 450, y: 550)
@@ -74,7 +75,11 @@ public final class CytoController: @unchecked Sendable {
             
             // Check for Enter / Return (keyCode 36 is Return, 76 is numpad Enter)
             if event.keyCode == 36 || event.keyCode == 76 {
-                self.entity.registerEnterPressed()
+                let now = Date()
+                if now.timeIntervalSince(self.lastSpokenTime) > 12.0 {
+                    self.lastSpokenTime = now
+                    self.entity.registerEnterPressed()
+                }
             }
         }
     }
@@ -108,13 +113,16 @@ public final class CytoController: @unchecked Sendable {
             burstKeystrokeCount += 1
             hasCelebratedCurrentBurst = false
             
-            let isFastTyping = burstKeystrokeCount >= 4
+            let isFastTyping = burstKeystrokeCount >= 6
             entity.registerUserTyping(isFast: isFastTyping)
-        } else if !hasCelebratedCurrentBurst && burstKeystrokeCount >= 4 && keyIdle >= 0.7 && keyIdle <= 1.4 {
-            // Typing burst completed: praise line submission / code block completion
-            hasCelebratedCurrentBurst = true
-            burstKeystrokeCount = 0
-            entity.registerTypingBurstCompleted()
+        } else if !hasCelebratedCurrentBurst && burstKeystrokeCount >= 25 && keyIdle >= 0.8 && keyIdle <= 2.2 {
+            // Typing burst completed: praise only after a genuine session with a 50s cooldown
+            if now.timeIntervalSince(lastSpokenTime) > 50.0 {
+                lastSpokenTime = now
+                hasCelebratedCurrentBurst = true
+                burstKeystrokeCount = 0
+                entity.registerTypingBurstCompleted()
+            }
         } else if keyIdle > 2.5 {
             burstKeystrokeCount = 0
             hasCelebratedCurrentBurst = false

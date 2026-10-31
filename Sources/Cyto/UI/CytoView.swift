@@ -159,7 +159,7 @@ public final class CytoView: NSView {
         // 4. Facial Expressions (Directly from Jelly's Design Sheet)
         drawJellyFace(context: context, w: w, h: h)
         
-        // 5. Interactive Accessory Overlay (Coffee, Terminal, Nightcap)
+        // 5. Interactive Accessory Overlay (Coffee, Terminal)
         drawAccessory(context: context, w: w, h: h)
         
         // 6. Sleeping Zzz or Curious Sparkles
@@ -425,16 +425,7 @@ public final class CytoView: NSView {
             let codeStr = NSString(string: "</>")
             codeStr.draw(at: NSPoint(x: -10.0, y: h * 0.16 + 4.0), withAttributes: attrs)
             
-        case .nightcap:
-            // Soft purple sleeping nightcap
-            let capPath = CGMutablePath()
-            capPath.move(to: CGPoint(x: -w * 0.35, y: h * 0.75))
-            capPath.addQuadCurve(to: CGPoint(x: w * 0.42, y: h * 0.95), control: CGPoint(x: 0, y: h * 0.98))
-            capPath.addLine(to: CGPoint(x: w * 0.48, y: h * 0.72))
-            capPath.closeSubpath()
-            context.setFillColor(CGColor(red: 0.45, green: 0.35, blue: 0.65, alpha: 1.0))
-            context.addPath(capPath)
-            context.fillPath()
+
             
         case .none:
             break
@@ -516,12 +507,47 @@ public final class CytoView: NSView {
         zString.draw(at: NSPoint(x: zX, y: zY), withAttributes: attrs)
     }
     
-    // MARK: - Manga Speech Bubble on Enter
+    // MARK: - Animated Manga Speech Bubble
     private func drawSpeechBubble(context: CGContext, text: String, topY: CGFloat) {
+        let maxDuration = max(0.1, entity.speechBubbleMaxDuration)
+        let timer = max(0.0, entity.speechBubbleTimer)
+        let elapsed = maxDuration - timer
+        
+        // 1. Smooth Spring Pop-In & Float-Fade-Out Transitions
+        let scale: CGFloat
+        let alpha: CGFloat
+        let floatOffset: CGFloat
+        
+        let popInDuration: CGFloat = 0.20
+        let fadeOutDuration: CGFloat = 0.28
+        
+        if elapsed < popInDuration {
+            // Elastic spring pop-in
+            let t = elapsed / popInDuration
+            let bounce = sin(t * .pi) * 0.16
+            scale = max(0.1, (0.5 + 0.5 * t) + bounce)
+            alpha = min(1.0, t * 1.8)
+            floatOffset = (1.0 - t) * 4.0
+        } else if timer < fadeOutDuration {
+            // Smooth float-up fade out
+            let t = timer / fadeOutDuration
+            scale = 0.85 + 0.15 * t
+            alpha = max(0.0, min(1.0, t * 1.2))
+            floatOffset = -(1.0 - t) * 5.0
+        } else {
+            // Floating gentle hover
+            scale = 1.0
+            alpha = 1.0
+            floatOffset = sin(CGFloat(elapsed) * 3.0) * 1.2
+        }
+        
+        guard alpha > 0.01 else { return }
+        
         let font = NSFont.systemFont(ofSize: 11.5, weight: .bold)
+        let textColor = NSColor(calibratedRed: 0.14, green: 0.12, blue: 0.22, alpha: alpha)
         let attrs: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: NSColor.black
+            .foregroundColor: textColor
         ]
         
         let attrString = NSAttributedString(string: text, attributes: attrs)
@@ -533,34 +559,44 @@ public final class CytoView: NSView {
         let bubbleH = textSize.height + padY * 2.0
         
         let bubbleX = bounds.midX - bubbleW / 2.0
-        let bubbleY = topY
+        let bubbleY = topY + floatOffset
         
         let bubbleRect = CGRect(x: bubbleX, y: bubbleY, width: bubbleW, height: bubbleH)
         let bubblePath = CGMutablePath()
         bubblePath.addRoundedRect(in: bubbleRect, cornerWidth: 8.0, cornerHeight: 8.0)
         
-        let pointerTip = CGPoint(x: bounds.midX, y: topY - 5.0)
-        bubblePath.move(to: CGPoint(x: bounds.midX - 5.0, y: topY))
+        let pointerTip = CGPoint(x: bounds.midX, y: bubbleY - 5.0)
+        bubblePath.move(to: CGPoint(x: bounds.midX - 5.0, y: bubbleY))
         bubblePath.addLine(to: pointerTip)
-        bubblePath.addLine(to: CGPoint(x: bounds.midX + 5.0, y: topY))
+        bubblePath.addLine(to: CGPoint(x: bounds.midX + 5.0, y: bubbleY))
         bubblePath.closeSubpath()
         
         context.saveGState()
-        context.setShadow(offset: CGSize(width: 0, height: -2), blur: 5.0, color: CGColor(red: 0, green: 0, blue: 0, alpha: 0.25))
+        
+        // Scale around bubble center
+        let centerX = bounds.midX
+        let centerY = bubbleY + bubbleH / 2.0
+        context.translateBy(x: centerX, y: centerY)
+        context.scaleBy(x: scale, y: scale)
+        context.translateBy(x: -centerX, y: -centerY)
+        
+        context.setAlpha(alpha)
+        context.setShadow(offset: CGSize(width: 0, height: -2), blur: 5.0, color: CGColor(red: 0.1, green: 0.08, blue: 0.2, alpha: 0.22 * alpha))
         context.setFillColor(CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.98))
         context.addPath(bubblePath)
         context.fillPath()
         
-        context.setStrokeColor(CGColor(red: 0.15, green: 0.18, blue: 0.32, alpha: 0.90))
+        context.setStrokeColor(CGColor(red: 0.72, green: 0.68, blue: 0.84, alpha: 0.95))
         context.setLineWidth(1.5)
         context.addPath(bubblePath)
         context.strokePath()
-        context.restoreGState()
         
         let textPoint = CGPoint(
             x: bubbleX + (bubbleW - textSize.width) / 2.0,
             y: bubbleY + (bubbleH - textSize.height) / 2.0
         )
         attrString.draw(at: textPoint)
+        
+        context.restoreGState()
     }
 }

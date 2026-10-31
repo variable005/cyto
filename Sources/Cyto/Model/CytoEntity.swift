@@ -37,6 +37,7 @@ public final class CytoEntity {
     public var curiousTilt: CGFloat = 0.0
     public var speechBubbleText: String? = nil
     public var speechBubbleTimer: TimeInterval = 0.0
+    public var speechBubbleMaxDuration: TimeInterval = 2.4
     
     public var currentLedgeY: CGFloat?
     public var isBeingInteractedWith: Bool = false
@@ -85,9 +86,10 @@ public final class CytoEntity {
         self.squishY = y
     }
     
-    public func say(_ text: String, duration: TimeInterval = 2.8) {
+    public func say(_ text: String, duration: TimeInterval = 2.4) {
         self.speechBubbleText = text
         self.speechBubbleTimer = duration
+        self.speechBubbleMaxDuration = duration
     }
     
     public func registerUserTyping(isFast: Bool = false) {
@@ -117,16 +119,15 @@ public final class CytoEntity {
         self.expression = .excited
         
         let praiseQuotes = [
-            "Nice logic!",
-            "Clean code!",
             "You got this!",
-            "Great flow!",
+            "Great rhythm!",
             "Keep it up!",
-            "Super clean!",
-            "Magic in progress!",
+            "Super focus!",
+            "So smooth~",
+            "Floating along!",
             "Giggle~"
         ]
-        say(praiseQuotes.randomElement() ?? "Clean code!", duration: 2.5)
+        say(praiseQuotes.randomElement() ?? "You got this!", duration: 2.4)
         
         // Joyful floaty hop
         if state.isGrounded {
@@ -143,7 +144,7 @@ public final class CytoEntity {
             "Hehe~",
             "Here with you!",
             "Need a break?",
-            "Code looks good!",
+            "Feeling cozy~",
             "I'm listening~",
             "Stay hydrated!"
         ]
@@ -162,16 +163,16 @@ public final class CytoEntity {
         let jellyQuotes = [
             "Boo!",
             "You got this!",
-            "Code compiled!",
+            "Yay!",
             "Super clean!",
-            "Shipped it!",
+            "Wonderful~",
             "Giggle~",
-            "Magic executed!",
-            "Nice logic!"
+            "Great work!",
+            "Hehe~"
         ]
         
         let chosen = jellyQuotes.randomElement() ?? "You got this!"
-        say(chosen, duration: 2.8)
+        say(chosen, duration: 2.4)
         
         // Joyful floaty hop with headphone glow pulse
         if state.isGrounded {
