@@ -8,7 +8,7 @@ public final class CytoEntity {
     public var state: CytoState
     public var mood: CytoMood
     public var focusTier: FocusTier
-    public var skin: AnimeSkin
+    public var character: CharacterID
     
     public var facingDirection: CGFloat // -1.0 = left, 1.0 = right
     public var eyeTarget: CGPoint
@@ -40,11 +40,11 @@ public final class CytoEntity {
     public init(initialPosition: CGPoint) {
         self.position = initialPosition
         self.velocity = CGVector(dx: 0, dy: 0)
-        self.size = CGSize(width: 58, height: 54)
+        self.size = CGSize(width: 64, height: 60)
         self.state = .falling
         self.mood = .calm
         self.focusTier = .steady
-        self.skin = .chibiNeko
+        self.character = .rin // Rin - The Late-Night Coder default
         
         self.facingDirection = 1.0
         self.eyeTarget = .zero
@@ -75,45 +75,31 @@ public final class CytoEntity {
         self.squishY = y
     }
     
-    public func say(_ text: String, duration: TimeInterval = 2.6) {
+    public func say(_ text: String, duration: TimeInterval = 2.8) {
         self.speechBubbleText = text
         self.speechBubbleTimer = duration
     }
     
     public func registerUserTyping() {
         self.isTypingObserved = true
-        self.typingTimer = 1.5 // Keep curious for 1.5s after keystroke
+        self.typingTimer = 1.6
         self.earTwitchPhase += 0.8
         
-        // Tilt head curiously towards screen
         if abs(curiousTilt) < 0.01 {
-            curiousTilt = Bool.random() ? 0.14 : -0.14
+            curiousTilt = Bool.random() ? 0.12 : -0.12
         }
     }
     
     public func registerEnterPressed() {
-        let animeResponses = [
-            "Sugoi!",
-            "Let's go!",
-            "Execute!",
-            "Subarashii!",
-            "Cooked!",
-            "Nani?!",
-            "Yatta!",
-            "Clean!",
-            "Boom!",
-            "Nice code!",
-            "Hehe~"
-        ]
-        
-        let chosen = animeResponses.randomElement() ?? "Sugoi!"
+        let quotes = character.enterQuotes
+        let chosen = quotes.randomElement() ?? "LGTM!"
         say(chosen, duration: 2.8)
         
-        // Joyful little hop on enter
+        // Gentle celebratory hop on enter
         if state.isGrounded {
-            self.velocity.dy = 220.0
+            self.velocity.dy = 190.0
             self.transition(to: .falling, duration: 0.5)
-            self.applySquish(x: 0.8, y: 1.25)
+            self.applySquish(x: 0.82, y: 1.22)
         }
     }
     
