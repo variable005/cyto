@@ -8,6 +8,7 @@ public final class CytoEntity {
     public var state: CytoState
     public var mood: CytoMood
     public var focusTier: FocusTier
+    public var skin: AnimeSkin
     
     public var facingDirection: CGFloat // -1.0 = left, 1.0 = right
     public var eyeTarget: CGPoint
@@ -21,6 +22,15 @@ public final class CytoEntity {
     public var blinkTimer: TimeInterval
     public var breathPhase: CGFloat
     public var walkPhase: CGFloat
+    public var tailPhase: CGFloat
+    
+    // Anime & Curious Typing Dynamics
+    public var isTypingObserved: Bool = false
+    public var typingTimer: TimeInterval = 0.0
+    public var curiousTilt: CGFloat = 0.0
+    public var earTwitchPhase: CGFloat = 0.0
+    public var speechBubbleText: String? = nil
+    public var speechBubbleTimer: TimeInterval = 0.0
     
     public var currentLedgeY: CGFloat?
     public var isBeingInteractedWith: Bool = false
@@ -30,10 +40,11 @@ public final class CytoEntity {
     public init(initialPosition: CGPoint) {
         self.position = initialPosition
         self.velocity = CGVector(dx: 0, dy: 0)
-        self.size = CGSize(width: 56, height: 56)
+        self.size = CGSize(width: 58, height: 54)
         self.state = .falling
         self.mood = .calm
         self.focusTier = .steady
+        self.skin = .chibiNeko
         
         self.facingDirection = 1.0
         self.eyeTarget = .zero
@@ -47,6 +58,7 @@ public final class CytoEntity {
         self.blinkTimer = Double.random(in: 2.0...5.0)
         self.breathPhase = 0.0
         self.walkPhase = 0.0
+        self.tailPhase = 0.0
     }
     
     public var boundingBox: CGRect {
@@ -61,6 +73,48 @@ public final class CytoEntity {
     public func applySquish(x: CGFloat, y: CGFloat) {
         self.squishX = x
         self.squishY = y
+    }
+    
+    public func say(_ text: String, duration: TimeInterval = 2.6) {
+        self.speechBubbleText = text
+        self.speechBubbleTimer = duration
+    }
+    
+    public func registerUserTyping() {
+        self.isTypingObserved = true
+        self.typingTimer = 1.5 // Keep curious for 1.5s after keystroke
+        self.earTwitchPhase += 0.8
+        
+        // Tilt head curiously towards screen
+        if abs(curiousTilt) < 0.01 {
+            curiousTilt = Bool.random() ? 0.14 : -0.14
+        }
+    }
+    
+    public func registerEnterPressed() {
+        let animeResponses = [
+            "Sugoi!",
+            "Let's go!",
+            "Execute!",
+            "Subarashii!",
+            "Cooked!",
+            "Nani?!",
+            "Yatta!",
+            "Clean!",
+            "Boom!",
+            "Nice code!",
+            "Hehe~"
+        ]
+        
+        let chosen = animeResponses.randomElement() ?? "Sugoi!"
+        say(chosen, duration: 2.8)
+        
+        // Joyful little hop on enter
+        if state.isGrounded {
+            self.velocity.dy = 220.0
+            self.transition(to: .falling, duration: 0.5)
+            self.applySquish(x: 0.8, y: 1.25)
+        }
     }
     
     public func transition(to newState: CytoState, duration: TimeInterval = 4.0) {
