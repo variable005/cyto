@@ -40,11 +40,11 @@ public final class CytoEntity {
     public init(initialPosition: CGPoint) {
         self.position = initialPosition
         self.velocity = CGVector(dx: 0, dy: 0)
-        self.size = CGSize(width: 64, height: 60)
+        self.size = CGSize(width: 104, height: 96)
         self.state = .falling
         self.mood = .calm
         self.focusTier = .steady
-        self.character = .rin // Rin - The Late-Night Coder default
+        self.character = .rin
         
         self.facingDirection = 1.0
         self.eyeTarget = .zero
@@ -86,7 +86,7 @@ public final class CytoEntity {
         self.earTwitchPhase += 0.8
         
         if abs(curiousTilt) < 0.01 {
-            curiousTilt = Bool.random() ? 0.12 : -0.12
+            curiousTilt = Bool.random() ? 0.08 : -0.08
         }
     }
     
@@ -95,11 +95,10 @@ public final class CytoEntity {
         let chosen = quotes.randomElement() ?? "LGTM!"
         say(chosen, duration: 2.8)
         
-        // Gentle celebratory hop on enter
         if state.isGrounded {
             self.velocity.dy = 190.0
             self.transition(to: .falling, duration: 0.5)
-            self.applySquish(x: 0.82, y: 1.22)
+            self.applySquish(x: 0.88, y: 1.15)
         }
     }
     
