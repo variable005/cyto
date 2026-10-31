@@ -4,15 +4,23 @@ public final class MenuBarController {
     private var statusItem: NSStatusItem?
     private let onSummon: () -> Void
     private let onToggleSleep: () -> Void
+    private let onToggleInteractive: () -> Void
     private let onQuit: () -> Void
     
     private var moodItem: NSMenuItem?
     private var focusItem: NSMenuItem?
     private var sleepToggleItem: NSMenuItem?
+    private var interactiveToggleItem: NSMenuItem?
     
-    public init(onSummon: @escaping () -> Void, onToggleSleep: @escaping () -> Void, onQuit: @escaping () -> Void) {
+    public init(
+        onSummon: @escaping () -> Void,
+        onToggleSleep: @escaping () -> Void,
+        onToggleInteractive: @escaping () -> Void,
+        onQuit: @escaping () -> Void
+    ) {
         self.onSummon = onSummon
         self.onToggleSleep = onToggleSleep
+        self.onToggleInteractive = onToggleInteractive
         self.onQuit = onQuit
         setupStatusBar()
     }
@@ -43,6 +51,11 @@ public final class MenuBarController {
         
         menu.addItem(NSMenuItem.separator())
         
+        let interactiveItem = NSMenuItem(title: "Clickable: Enabled", action: #selector(interactiveClicked), keyEquivalent: "i")
+        interactiveItem.target = self
+        menu.addItem(interactiveItem)
+        self.interactiveToggleItem = interactiveItem
+        
         let summonItem = NSMenuItem(title: "Summon to Center", action: #selector(summonClicked), keyEquivalent: "s")
         summonItem.target = self
         menu.addItem(summonItem)
@@ -61,10 +74,11 @@ public final class MenuBarController {
         statusItem?.menu = menu
     }
     
-    public func update(mood: CytoMood, focus: FocusTier, isSleeping: Bool) {
+    public func update(mood: CytoMood, focus: FocusTier, isSleeping: Bool, isInteractive: Bool) {
         moodItem?.title = "Mood: \(mood.rawValue.capitalized)"
         focusItem?.title = "Focus: \(focus.rawValue.capitalized)"
         sleepToggleItem?.title = isSleeping ? "Wake Up" : "Put to Rest"
+        interactiveToggleItem?.title = isInteractive ? "Clickable: Enabled" : "Clickable: Disabled (Pass-Through)"
     }
     
     @objc private func summonClicked() {
@@ -73,6 +87,10 @@ public final class MenuBarController {
     
     @objc private func sleepClicked() {
         onToggleSleep()
+    }
+    
+    @objc private func interactiveClicked() {
+        onToggleInteractive()
     }
     
     @objc private func quitClicked() {

@@ -3,7 +3,7 @@ import CoreGraphics
 
 public final class CytoView: NSView {
     public let entity: CytoEntity
-    private var dragStartMousePos: CGPoint = .zero
+    private var dragStartMouseScreen: CGPoint = .zero
     private var dragStartEntityPos: CGPoint = .zero
     private var recentDragDeltas: [CGPoint] = []
     private var lastDragTime: Date = Date()
@@ -19,20 +19,10 @@ public final class CytoView: NSView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    // Only intercept clicks that touch Cyto's physical body. All other clicks pass through to macOS.
-    public override func hitTest(_ point: NSPoint) -> NSView? {
-        let touchBox = entity.boundingBox.insetBy(dx: -12, dy: -12)
-        if touchBox.contains(point) {
-            return self
-        }
-        return nil
-    }
-    
     // MARK: - Mouse Interaction
     
     public override func mouseDown(with event: NSEvent) {
-        let clickLocation = convert(event.locationInWindow, from: nil)
-        dragStartMousePos = clickLocation
+        dragStartMouseScreen = NSEvent.mouseLocation
         dragStartEntityPos = entity.position
         recentDragDeltas.removeAll()
         lastDragTime = Date()
@@ -42,7 +32,7 @@ public final class CytoView: NSView {
         entity.velocity = .zero
         entity.applySquish(x: 0.85, y: 1.2)
         
-        // Tactile pick-up feedback
+        // Gentle pick-up haptic feedback
         NSHapticFeedbackManager.defaultPerformer.perform(
             .alignment,
             performanceTime: .now
@@ -51,28 +41,33 @@ public final class CytoView: NSView {
     }
     
     public override func mouseDragged(with event: NSEvent) {
-        let currentLocation = convert(event.locationInWindow, from: nil)
-        let dx = currentLocation.x - dragStartMousePos.x
-        let dy = currentLocation.y - dragStartMousePos.y
+        let currentMouseScreen = NSEvent.mouseLocation
+        let dx = currentMouseScreen.x - dragStartMouseScreen.x
+        let dy = currentMouseScreen.y - dragStartMouseScreen.y
         
         let now = Date()
         let dt = CGFloat(max(0.001, now.timeIntervalSince(lastDragTime)))
         lastDragTime = now
         
+        let newX = dragStartEntityPos.x + dx
+        let newY = dragStartEntityPos.y + dy
+        
         // Track recent velocity for toss kinetics
-        let instantaneousVelocity = CGPoint(x: (currentLocation.x - entity.position.x) / dt,
-                                            y: (currentLocation.y - entity.position.y) / dt)
+        let instantaneousVelocity = CGPoint(
+            x: (newX - entity.position.x) / dt,
+            y: (newY - entity.position.y) / dt
+        )
         recentDragDeltas.append(instantaneousVelocity)
         if recentDragDeltas.count > 5 {
             recentDragDeltas.removeFirst()
         }
         
-        entity.position = CGPoint(x: dragStartEntityPos.x + dx, y: dragStartEntityPos.y + dy)
+        entity.position = CGPoint(x: newX, y: newY)
         
-        // Gentle petting detection if mouse wiggles slightly in place
-        if abs(dx) < 8 && abs(dy) < 8 {
+        // Detect subtle wiggles as petting
+        if abs(dx) < 12 && abs(dy) < 12 {
             petCounter += 1
-            if petCounter > 8 {
+            if petCounter > 6 {
                 petCounter = 0
                 entity.transition(to: .petted, duration: 2.0)
                 NSHapticFeedbackManager.defaultPerformer.perform(
@@ -93,8 +88,8 @@ public final class CytoView: NSView {
             let avgDx = recentDragDeltas.map { $0.x }.reduce(0, +) / CGFloat(recentDragDeltas.count)
             let avgDy = recentDragDeltas.map { $0.y }.reduce(0, +) / CGFloat(recentDragDeltas.count)
             
-            let cappedDx = max(-1200.0, min(1200.0, avgDx * 0.85))
-            let cappedDy = max(-1000.0, min(1200.0, avgDy * 0.85))
+            let cappedDx = max(-1100.0, min(1100.0, avgDx * 0.85))
+            let cappedDy = max(-900.0, min(1100.0, avgDy * 0.85))
             entity.velocity = CGVector(dx: cappedDx, dy: cappedDy)
         } else {
             entity.velocity = .zero
@@ -110,7 +105,7 @@ public final class CytoView: NSView {
         needsDisplay = true
     }
     
-    // MARK: - Procedural Rendering
+    // MARK: - Procedural Rendering in Local Coordinates
     
     public override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
@@ -118,13 +113,14 @@ public final class CytoView: NSView {
         
         context.saveGState()
         
-        let cx = entity.position.x
-        let cy = entity.position.y
+        // Render relative to view bounds (centered horizontally, foot at bottom padding)
+        let cx = bounds.midX
+        let cy: CGFloat = 8.0
         let w = entity.size.width * entity.squishX
         let h = entity.size.height * entity.squishY
         
         // Subtle walking waddle or breathing scale
-        let breathScale = 1.0 + sin(entity.breathPhase) * 0.03
+        let breathScale = 1.0 + sin(entity.breathPhase) * 0.035
         let walkOffset = (entity.state == .walking) ? abs(sin(entity.walkPhase)) * 3.5 : 0.0
         let walkAngle = (entity.state == .walking) ? sin(entity.walkPhase) * 0.08 : 0.0
         
@@ -208,7 +204,6 @@ public final class CytoView: NSView {
         let eyeY = bodyHeight * 0.52
         let eyeRadius: CGFloat = 5.5
         
-        // Eyes tracking offset towards eyeTarget
         let gazeX = entity.eyeOffset.x * 2.5
         let gazeY = entity.eyeOffset.y * 2.0
         
@@ -216,33 +211,30 @@ public final class CytoView: NSView {
         let rightEyeCenter = CGPoint(x: eyeSpacing + gazeX, y: eyeY + gazeY)
         
         if entity.state == .sleeping || entity.blinkFactor > 0.6 {
-            // Closed / Happy curved arc eyes
             context.setStrokeColor(CGColor(red: 0.1, green: 0.15, blue: 0.35, alpha: 0.85))
             context.setLineWidth(2.2)
             context.setLineCap(.round)
             
-            // Left eye arc
             context.beginPath()
             context.addArc(center: CGPoint(x: -eyeSpacing, y: eyeY), radius: eyeRadius, startAngle: .pi * 0.2, endAngle: .pi * 0.8, clockwise: false)
             context.strokePath()
             
-            // Right eye arc
             context.beginPath()
             context.addArc(center: CGPoint(x: eyeSpacing, y: eyeY), radius: eyeRadius, startAngle: .pi * 0.2, endAngle: .pi * 0.8, clockwise: false)
             context.strokePath()
         } else {
-            // Open white cornea
+            // Sclera
             context.setFillColor(CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.95))
             context.fillEllipse(in: CGRect(x: leftEyeCenter.x - eyeRadius, y: leftEyeCenter.y - eyeRadius, width: eyeRadius * 2.0, height: eyeRadius * 2.0))
             context.fillEllipse(in: CGRect(x: rightEyeCenter.x - eyeRadius, y: rightEyeCenter.y - eyeRadius, width: eyeRadius * 2.0, height: eyeRadius * 2.0))
             
-            // Dark expressive pupils
+            // Pupils
             let pupilRadius: CGFloat = 3.2
             context.setFillColor(CGColor(red: 0.08, green: 0.12, blue: 0.28, alpha: 0.95))
             context.fillEllipse(in: CGRect(x: leftEyeCenter.x - pupilRadius, y: leftEyeCenter.y - pupilRadius, width: pupilRadius * 2.0, height: pupilRadius * 2.0))
             context.fillEllipse(in: CGRect(x: rightEyeCenter.x - pupilRadius, y: rightEyeCenter.y - pupilRadius, width: pupilRadius * 2.0, height: pupilRadius * 2.0))
             
-            // Tiny light reflection glint
+            // Glints
             let glintRadius: CGFloat = 1.2
             context.setFillColor(CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.9))
             context.fillEllipse(in: CGRect(x: leftEyeCenter.x - glintRadius + 1.0, y: leftEyeCenter.y + glintRadius, width: glintRadius * 2.0, height: glintRadius * 2.0))
@@ -252,8 +244,8 @@ public final class CytoView: NSView {
     
     private func drawSleepingZzz(context: CGContext, bodyHeight: CGFloat) {
         let zPhase = CGFloat(entity.stateTimer.truncatingRemainder(dividingBy: 3.0)) / 3.0
-        let zY = bodyHeight + (zPhase * 24.0)
-        let zX = 14.0 + (zPhase * 8.0)
+        let zY = bodyHeight + (zPhase * 20.0)
+        let zX = 14.0 + (zPhase * 6.0)
         let alpha = 1.0 - zPhase
         
         let font = NSFont.systemFont(ofSize: 11.0, weight: .bold)
