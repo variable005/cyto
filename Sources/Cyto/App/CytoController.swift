@@ -15,9 +15,10 @@ public final class CytoController: @unchecked Sendable {
     private var lastFrameTime: Date = Date()
     private var cachedLedges: [Ledge] = []
     private var lastLedgeQueryTime: Date = Date()
+    private var isInteractive: Bool = true
     
     public init() {
-        let initialPoint = CGPoint(x: 400, y: 600)
+        let initialPoint = CGPoint(x: 450, y: 550)
         self.entity = CytoEntity(initialPosition: initialPoint)
         self.windowTracker = WindowTracker()
         self.physicsEngine = PhysicsEngine()
@@ -25,11 +26,11 @@ public final class CytoController: @unchecked Sendable {
     }
     
     public func start() {
-        guard let screen = NSScreen.main else { return }
-        
-        let screenFrame = screen.frame
-        let panel = OverlayPanel(contentRect: screenFrame)
-        let view = CytoView(frame: NSRect(origin: .zero, size: screenFrame.size), entity: entity)
+        let panel = OverlayPanel(initialPosition: entity.position)
+        let view = CytoView(
+            frame: NSRect(origin: .zero, size: OverlayPanel.defaultSize),
+            entity: entity
+        )
         
         panel.contentView = view
         panel.orderFrontRegardless()
@@ -41,6 +42,7 @@ public final class CytoController: @unchecked Sendable {
         self.menuBarController = MenuBarController(
             onSummon: { [weak self] in self?.summonToCenter() },
             onToggleSleep: { [weak self] in self?.toggleSleep() },
+            onToggleInteractive: { [weak self] in self?.toggleInteractive() },
             onQuit: { NSApp.terminate(nil) }
         )
         
@@ -66,7 +68,7 @@ public final class CytoController: @unchecked Sendable {
         let dt = CGFloat(min(0.05, now.timeIntervalSince(lastFrameTime)))
         lastFrameTime = now
         
-        guard let screen = NSScreen.main, let view = cytoView else { return }
+        guard let screen = NSScreen.main, let view = cytoView, let panel = overlayPanel else { return }
         
         // 1. Periodically refresh walkable window ledges (every 0.5s)
         if now.timeIntervalSince(lastLedgeQueryTime) > 0.5 {
@@ -106,22 +108,28 @@ public final class CytoController: @unchecked Sendable {
         // 6. Kinematics & Physics Step
         physicsEngine.update(entity: entity, deltaTime: dt, ledges: cachedLedges, screenBounds: screen.frame)
         
-        // 7. Sync Menu Bar Status
+        // 7. Synchronize Window Origin with Entity Physics Position
+        let targetOrigin = NSPoint(
+            x: entity.position.x - OverlayPanel.defaultSize.width / 2.0,
+            y: entity.position.y - 6.0
+        )
+        panel.setFrameOrigin(targetOrigin)
+        
+        // 8. Sync Menu Bar Status
         menuBarController?.update(
             mood: entity.mood,
             focus: entity.focusTier,
-            isSleeping: entity.state == .sleeping
+            isSleeping: entity.state == .sleeping,
+            isInteractive: isInteractive
         )
         
-        // 8. Trigger redraw
+        // 9. Trigger redraw
         view.needsDisplay = true
     }
     
     private func decideNextBehavior() {
-        // Behavioral branching influenced by user focus state
         switch entity.focusTier {
         case .inFlow:
-            // Soothed by continuous rhythm: rest, sleep, or gentle idle
             let roll = Double.random(in: 0...1)
             if roll < 0.45 {
                 entity.transition(to: .sleeping, duration: Double.random(in: 12.0...30.0))
@@ -142,7 +150,6 @@ public final class CytoController: @unchecked Sendable {
             }
             
         case .wandering, .idle:
-            // Curious or restless wandering when idle
             let roll = Double.random(in: 0...1)
             if roll < 0.60 {
                 startWalking()
@@ -177,5 +184,10 @@ public final class CytoController: @unchecked Sendable {
         } else {
             entity.transition(to: .sleeping, duration: 60.0)
         }
+    }
+    
+    public func toggleInteractive() {
+        isInteractive.toggle()
+        overlayPanel?.ignoresMouseEvents = !isInteractive
     }
 }
