@@ -202,11 +202,14 @@ public final class CytoView: NSView {
             drawMusicNotes(context: context)
         }
         
+        activeBubbleRect = nil
+        activeTimerRect = nil
+        
         context.restoreGState()
         
-        // 9. Manga Speech Bubble on Enter
+        // 9. Liquid Glass Speech Bubble
         if let speech = entity.speechBubbleText, entity.speechBubbleTimer > 0 {
-            drawSpeechBubble(context: context, text: speech, topY: cy + h + 10.0)
+            drawSpeechBubble(context: context, text: speech, baseY: cy + h + 10.0)
         }
     }
     
@@ -582,95 +585,206 @@ public final class CytoView: NSView {
         }
     }
     
-    // MARK: - Animated Manga Speech Bubble
-    private func drawSpeechBubble(context: CGContext, text: String, topY: CGFloat) {
+    // MARK: - Animated Liquid Glass Speech Bubble
+    private func drawSpeechBubble(context: CGContext, text: String, baseY: CGFloat) {
         let maxDuration = max(0.1, entity.speechBubbleMaxDuration)
         let timer = max(0.0, entity.speechBubbleTimer)
         let elapsed = maxDuration - timer
         
-        // 1. Smooth Spring Pop-In & Float-Fade-Out Transitions
-        let scale: CGFloat
+        // 1. Liquid Glass Fluid Spring Physics (Volume-Preserving Squash & Stretch)
+        let popInDuration: CGFloat = 0.35
+        let fadeOutDuration: CGFloat = 0.28
+        let scaleX: CGFloat
+        let scaleY: CGFloat
         let alpha: CGFloat
         let floatOffset: CGFloat
         
-        let popInDuration: CGFloat = 0.20
-        let fadeOutDuration: CGFloat = 0.28
-        
         if elapsed < popInDuration {
-            // Elastic spring pop-in
+            // Harmonic fluid droplet oscillation
             let t = elapsed / popInDuration
-            let bounce = sin(t * .pi) * 0.16
-            scale = max(0.1, (0.5 + 0.5 * t) + bounce)
-            alpha = min(1.0, t * 1.8)
-            floatOffset = (1.0 - t) * 4.0
+            let decay = exp(-4.5 * t)
+            let wobble = sin(t * .pi * 3.5) * decay * 0.28
+            let baseScale = min(1.0, t * 1.5)
+            scaleX = max(0.05, baseScale * (1.0 + wobble))
+            scaleY = max(0.05, baseScale * (1.0 - wobble * 0.82))
+            alpha = min(1.0, t * 2.5)
+            floatOffset = (1.0 - t) * 6.0
         } else if timer < fadeOutDuration {
-            // Smooth float-up fade out
+            // Liquid dissipation fade-out
             let t = timer / fadeOutDuration
-            scale = 0.85 + 0.15 * t
-            alpha = max(0.0, min(1.0, t * 1.2))
-            floatOffset = -(1.0 - t) * 5.0
+            scaleX = 0.85 + 0.15 * t
+            scaleY = 0.85 + 0.15 * t
+            alpha = max(0.0, min(1.0, t * 1.4))
+            floatOffset = -(1.0 - t) * 6.0
         } else {
-            // Floating gentle hover
-            scale = 1.0
+            // Ambient liquid floating oscillation
+            let pulse = sin(CGFloat(elapsed) * 2.5) * 0.015
+            scaleX = 1.0 + pulse
+            scaleY = 1.0 - pulse
             alpha = 1.0
-            floatOffset = sin(CGFloat(elapsed) * 3.0) * 1.2
+            floatOffset = sin(CGFloat(elapsed) * 3.0) * 1.5
         }
         
-        guard alpha > 0.01 else { return }
+        guard alpha > 0.02 else {
+            activeBubbleRect = nil
+            return
+        }
         
-        let font = NSFont.systemFont(ofSize: 11.5, weight: .bold)
-        let textColor = NSColor(calibratedRed: 0.14, green: 0.12, blue: 0.22, alpha: alpha)
+        // 2. High-Legibility Typography with Multi-Line Auto-Wrapping
+        let font = NSFont.systemFont(ofSize: 11.5, weight: .semibold)
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .center
+        paragraphStyle.lineBreakMode = .byWordWrapping
+        
+        let textColor: NSColor
+        if entity.isNightMode {
+            textColor = NSColor(calibratedRed: 0.16, green: 0.12, blue: 0.28, alpha: alpha * 0.95)
+        } else {
+            textColor = NSColor(calibratedRed: 0.12, green: 0.10, blue: 0.22, alpha: alpha * 0.95)
+        }
+        
         let attrs: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: textColor
+            .foregroundColor: textColor,
+            .paragraphStyle: paragraphStyle
         ]
         
-        let attrString = NSAttributedString(string: text, attributes: attrs)
-        let textSize = attrString.size()
+        let maxTextWidth: CGFloat = 236.0
+        let boundingRect = (text as NSString).boundingRect(
+            with: CGSize(width: maxTextWidth, height: 120),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: attrs
+        )
+        let textWidth = ceil(boundingRect.width)
+        let textHeight = ceil(boundingRect.height)
         
-        let padX: CGFloat = 10.0
-        let padY: CGFloat = 5.0
-        let bubbleW = max(52.0, textSize.width + padX * 2.0)
-        let bubbleH = textSize.height + padY * 2.0
+        let padX: CGFloat = 13.0
+        let padY: CGFloat = 7.0
+        let bubbleW = min(268.0, max(68.0, textWidth + padX * 2.0))
+        let bubbleH = max(28.0, textHeight + padY * 2.0)
         
-        let bubbleX = bounds.midX - bubbleW / 2.0
-        let bubbleY = topY + floatOffset
-        
+        let bubbleX = min(bounds.width - bubbleW - 8.0, max(8.0, bounds.midX - bubbleW / 2.0))
+        let bubbleY = baseY + floatOffset + 6.0
         let bubbleRect = CGRect(x: bubbleX, y: bubbleY, width: bubbleW, height: bubbleH)
-        let bubblePath = CGMutablePath()
-        bubblePath.addRoundedRect(in: bubbleRect, cornerWidth: 8.0, cornerHeight: 8.0)
+        let cornerR = min(bubbleH / 2.0, 13.0)
         
-        let pointerTip = CGPoint(x: bounds.midX, y: bubbleY - 5.0)
-        bubblePath.move(to: CGPoint(x: bounds.midX - 5.0, y: bubbleY))
-        bubblePath.addLine(to: pointerTip)
-        bubblePath.addLine(to: CGPoint(x: bounds.midX + 5.0, y: bubbleY))
-        bubblePath.closeSubpath()
+        // Active Hit-Testing Rect
+        activeBubbleRect = CGRect(x: bubbleX, y: bubbleY - 4.0, width: bubbleW, height: bubbleH + 6.0)
+        
+        // 3. Fluid Droplet Capsule & Organic Stem
+        let path = CGMutablePath()
+        path.addRoundedRect(in: bubbleRect, cornerWidth: cornerR, cornerHeight: cornerR)
+        
+        let stemTip = CGPoint(x: bounds.midX, y: max(baseY - 2.0, bubbleY - 7.0))
+        let stemLeft = CGPoint(x: bounds.midX - 5.5, y: bubbleY + 1.5)
+        let stemRight = CGPoint(x: bounds.midX + 5.5, y: bubbleY + 1.5)
+        
+        let stemPath = CGMutablePath()
+        stemPath.move(to: stemLeft)
+        stemPath.addQuadCurve(to: stemTip, control: CGPoint(x: bounds.midX - 2.0, y: bubbleY - 4.0))
+        stemPath.addQuadCurve(to: stemRight, control: CGPoint(x: bounds.midX + 2.0, y: bubbleY - 4.0))
+        stemPath.closeSubpath()
+        path.addPath(stemPath)
         
         context.saveGState()
         
-        // Scale around bubble center
-        let centerX = bounds.midX
-        let centerY = bubbleY + bubbleH / 2.0
+        // Squash & Stretch around bubble center
+        let centerX = bubbleRect.midX
+        let centerY = bubbleRect.midY
         context.translateBy(x: centerX, y: centerY)
-        context.scaleBy(x: scale, y: scale)
+        context.scaleBy(x: scaleX, y: scaleY)
         context.translateBy(x: -centerX, y: -centerY)
         
-        context.setAlpha(alpha)
-        context.setShadow(offset: CGSize(width: 0, height: -2), blur: 5.0, color: CGColor(red: 0.1, green: 0.08, blue: 0.2, alpha: 0.22 * alpha))
-        context.setFillColor(CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.98))
-        context.addPath(bubblePath)
-        context.fillPath()
-        
-        context.setStrokeColor(CGColor(red: 0.72, green: 0.68, blue: 0.84, alpha: 0.95))
-        context.setLineWidth(1.5)
-        context.addPath(bubblePath)
-        context.strokePath()
-        
-        let textPoint = CGPoint(
-            x: bubbleX + (bubbleW - textSize.width) / 2.0,
-            y: bubbleY + (bubbleH - textSize.height) / 2.0
+        // 4. Ethereal Ambient Drop Shadow
+        context.setShadow(
+            offset: CGSize(width: 0, height: -3.5),
+            blur: 12.0,
+            color: CGColor(red: 0.16, green: 0.10, blue: 0.32, alpha: 0.22 * alpha)
         )
-        attrString.draw(at: textPoint)
+        
+        // 5. Frosted Liquid Glass Multi-Stop Linear Gradient Fill
+        context.saveGState()
+        context.addPath(path)
+        context.clip()
+        
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let topColor: CGColor
+        let midColor: CGColor
+        let botColor: CGColor
+        
+        if entity.isNightMode {
+            topColor = CGColor(red: 0.96, green: 0.94, blue: 1.0, alpha: 0.92 * alpha)
+            midColor = CGColor(red: 0.86, green: 0.82, blue: 0.96, alpha: 0.84 * alpha)
+            botColor = CGColor(red: 0.74, green: 0.69, blue: 0.88, alpha: 0.76 * alpha)
+        } else {
+            topColor = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.94 * alpha)
+            midColor = CGColor(red: 0.96, green: 0.94, blue: 1.0, alpha: 0.86 * alpha)
+            botColor = CGColor(red: 0.91, green: 0.88, blue: 0.98, alpha: 0.78 * alpha)
+        }
+        
+        if let gradient = CGGradient(
+            colorsSpace: colorSpace,
+            colors: [topColor, midColor, botColor] as CFArray,
+            locations: [0.0, 0.45, 1.0]
+        ) {
+            context.drawLinearGradient(
+                gradient,
+                start: CGPoint(x: centerX, y: bubbleY + bubbleH),
+                end: CGPoint(x: centerX, y: bubbleY - 5.0),
+                options: []
+            )
+        }
+        
+        // 6. Inner Caustic Refraction (Top Edge Lens Highlight Sheen)
+        let sheenRect = CGRect(x: bubbleX + 5.0, y: bubbleY + bubbleH - 6.5, width: bubbleW - 10.0, height: 4.5)
+        let sheenPath = CGMutablePath()
+        sheenPath.addRoundedRect(in: sheenRect, cornerWidth: 2.25, cornerHeight: 2.25)
+        let sheenTop = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.70 * alpha)
+        let sheenBot = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.05 * alpha)
+        if let sheenGrad = CGGradient(colorsSpace: colorSpace, colors: [sheenTop, sheenBot] as CFArray, locations: [0.0, 1.0]) {
+            context.saveGState()
+            context.addPath(sheenPath)
+            context.clip()
+            context.drawLinearGradient(sheenGrad, start: CGPoint(x: centerX, y: sheenRect.maxY), end: CGPoint(x: centerX, y: sheenRect.minY), options: [])
+            context.restoreGState()
+        }
+        
+        // 7. Dynamic Liquid Shimmer Light Pass
+        let shimmerPhase = CGFloat(fmod(Double(elapsed) * 0.45, 1.0))
+        let shimmerX = bubbleX - 40.0 + (bubbleW + 80.0) * shimmerPhase
+        let shimmerRect = CGRect(x: shimmerX, y: bubbleY, width: 28.0, height: bubbleH)
+        let shimLeft = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.0)
+        let shimMid = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.28 * alpha)
+        let shimRight = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.0)
+        if let shimGrad = CGGradient(colorsSpace: colorSpace, colors: [shimLeft, shimMid, shimRight] as CFArray, locations: [0.0, 0.5, 1.0]) {
+            context.saveGState()
+            context.clip(to: shimmerRect)
+            context.drawLinearGradient(shimGrad, start: CGPoint(x: shimmerX, y: bubbleY), end: CGPoint(x: shimmerX + 28.0, y: bubbleY), options: [])
+            context.restoreGState()
+        }
+        
+        context.restoreGState() // restore clip
+        
+        // 8. Specular Rim Stroke (Bending Light on Edge of Glass)
+        context.saveGState()
+        context.addPath(path)
+        let rimColor = entity.isNightMode ?
+            CGColor(red: 0.92, green: 0.88, blue: 1.0, alpha: 0.88 * alpha) :
+            CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.92 * alpha)
+        context.setStrokeColor(rimColor)
+        context.setLineWidth(1.2)
+        context.strokePath()
+        context.restoreGState()
+        
+        // 9. Draw Formatted Text Centered
+        let textRect = CGRect(
+            x: bubbleX + (bubbleW - textWidth) / 2.0,
+            y: bubbleY + (bubbleH - textHeight) / 2.0 - 0.5,
+            width: textWidth,
+            height: textHeight
+        )
+        let attrString = NSAttributedString(string: text, attributes: attrs)
+        attrString.draw(with: textRect, options: [.usesLineFragmentOrigin, .usesFontLeading])
         
         context.restoreGState()
     }
