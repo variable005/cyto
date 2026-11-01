@@ -188,7 +188,10 @@ public final class CytoView: NSView {
         // 5. Interactive Accessory Overlay (Coffee, Terminal)
         drawAccessory(context: context, w: w, h: h)
         
-        // 6. Sleeping Zzz or Curious Sparkles or Floating Music Notes
+        // 6. Cute Ghost Paws & Expressive Gestures
+        drawGhostHands(context: context, w: w, h: h)
+        
+        // 7. Sleeping Zzz or Curious Sparkles or Floating Music Notes
         if entity.state == .sleeping || entity.expression == .sleepy {
             drawSleepingZzz(context: context, h: h)
         } else if entity.expression == .excited {
@@ -598,6 +601,96 @@ public final class CytoView: NSView {
             
         case .none:
             break
+        }
+    }
+    
+    // MARK: - Ghost Hands & Expressive Gestures
+    private func drawSinglePaw(context: CGContext, center: CGPoint, angle: CGFloat, size: CGSize = CGSize(width: 7.5, height: 9.0)) {
+        context.saveGState()
+        context.translateBy(x: center.x, y: center.y)
+        context.rotate(by: angle)
+        
+        let pawRect = CGRect(x: -size.width / 2.0, y: -size.height / 2.0, width: size.width, height: size.height)
+        let pawPath = CGPath(roundedRect: pawRect, cornerWidth: size.width * 0.5, cornerHeight: size.height * 0.5, transform: nil)
+        
+        context.saveGState()
+        context.addPath(pawPath)
+        context.clip()
+        
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let topColor = entity.isNightMode ?
+            CGColor(red: 0.94, green: 0.92, blue: 0.98, alpha: 0.98) :
+            CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.98)
+        let bottomColor = entity.isNightMode ?
+            CGColor(red: 0.76, green: 0.70, blue: 0.90, alpha: 0.96) :
+            CGColor(red: 0.88, green: 0.84, blue: 0.94, alpha: 0.96)
+        
+        if let gradient = CGGradient(colorsSpace: colorSpace, colors: [topColor, bottomColor] as CFArray, locations: [0.0, 1.0]) {
+            context.drawLinearGradient(gradient, start: CGPoint(x: 0, y: size.height / 2.0), end: CGPoint(x: 0, y: -size.height / 2.0), options: [])
+        }
+        
+        let innerCoreColor = entity.isNightMode ?
+            CGColor(red: 0.82, green: 0.76, blue: 1.0, alpha: 0.35) :
+            CGColor(red: 1.0, green: 0.98, blue: 1.0, alpha: 0.45)
+        let outerCoreColor = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.0)
+        if let coreGrad = CGGradient(colorsSpace: colorSpace, colors: [innerCoreColor, outerCoreColor] as CFArray, locations: [0.0, 1.0]) {
+            context.drawRadialGradient(coreGrad, startCenter: .zero, startRadius: 0, endCenter: .zero, endRadius: size.width * 0.6, options: [])
+        }
+        context.restoreGState() // restore clip
+        
+        // Soft matching outline
+        context.addPath(pawPath)
+        let strokeColor = entity.isNightMode ?
+            CGColor(red: 0.62, green: 0.55, blue: 0.82, alpha: 0.95) :
+            CGColor(red: 0.74, green: 0.70, blue: 0.86, alpha: 0.90)
+        context.setStrokeColor(strokeColor)
+        context.setLineWidth(1.4)
+        context.strokePath()
+        
+        context.restoreGState()
+    }
+    
+    private func drawGhostHands(context: CGContext, w: CGFloat, h: CGFloat) {
+        // If holding Coffee mug
+        if entity.accessory == .coffee {
+            // Gripping both sides of the warm ceramic mug
+            let mugY = h * 0.20
+            drawSinglePaw(context: context, center: CGPoint(x: -10.0, y: mugY + 7.0), angle: 0.25)
+            drawSinglePaw(context: context, center: CGPoint(x: 10.0, y: mugY + 7.0), angle: -0.25)
+            return
+        }
+        
+        // If holding Mini Coding Terminal
+        if entity.accessory == .coding {
+            // Animated typing flutter alternating on keyboard
+            let termY = h * 0.16
+            let typeFlutterL = sin(CGFloat(entity.breathPhase) * 14.0) * 1.5
+            let typeFlutterR = -sin(CGFloat(entity.breathPhase) * 14.0) * 1.5
+            drawSinglePaw(context: context, center: CGPoint(x: -8.0, y: termY + 18.0 + typeFlutterL), angle: -0.12)
+            drawSinglePaw(context: context, center: CGPoint(x: 8.0, y: termY + 18.0 + typeFlutterR), angle: 0.12)
+            return
+        }
+        
+        // Expressive Gestures when no accessories are held
+        if entity.expression == .excited || (entity.expression == .happy && entity.isTypingObserved) {
+            // Celebrating pose \o/ (hands held high in excitement)
+            let celebrateBobL = sin(entity.floatPhase * 4.0) * 2.2
+            let celebrateBobR = sin(entity.floatPhase * 4.0 + .pi) * 2.2
+            drawSinglePaw(context: context, center: CGPoint(x: -w * 0.36, y: h * 0.54 + celebrateBobL), angle: -0.45)
+            drawSinglePaw(context: context, center: CGPoint(x: w * 0.36, y: h * 0.54 + celebrateBobR), angle: 0.45)
+        } else if entity.expression == .curious && entity.isTypingObserved {
+            // Pondering gesture: one hand raised to cheek, other resting on tummy
+            drawSinglePaw(context: context, center: CGPoint(x: w * 0.24, y: h * 0.42), angle: -0.30)
+            drawSinglePaw(context: context, center: CGPoint(x: -8.0, y: h * 0.22), angle: 0.15)
+        } else if entity.state == .sleeping || entity.state == .sitting {
+            // Tucked in resting paws
+            drawSinglePaw(context: context, center: CGPoint(x: -4.5, y: h * 0.18), angle: 0.10)
+            drawSinglePaw(context: context, center: CGPoint(x: 4.5, y: h * 0.18), angle: -0.10)
+        } else {
+            // Natural ambient resting paws floating on belly with breath modulation
+            let breathBob = sin(entity.breathPhase) * 0.8
+            drawSinglePaw(context: context, center: CGPoint(x: -9.0, y: h * 0.22 + breathBob), angle: 0.18)
+            drawSinglePaw(context: context, center: CGPoint(x: 9.0, y: h * 0.22 + breathBob), angle: -0.18)
         }
     }
     

@@ -371,6 +371,7 @@ stateDiagram-v2
 - Studio Headphones with Metallic Pivots: Features an obsidian headband anchored directly to the dome geometry with brushed aluminum pivot brackets and pulsing neon violet LED ring lighting (`#C084FC`).
 - Skirt Cloth Wind-Drag Inertia: Dynamically tracks lateral velocity to simulate physical fabric drag along the hem endpoints and interior folds (`skirtClothSkew`), causing the ghostly skirt to flutter and billow organically during drags, throws, and hovering flights.
 - Secondary Headphone Spring Dynamics: Implements a damped harmonic oscillator simulation (`springForce = 160.0`, `dampingForce = -12.0`) that rotates the headphone rig around the cranial anchor point (`headphoneSecondaryTilt`), providing physical mass and inertia during sudden acceleration.
+- Animated Ghost Paws & Contextual Gestures: Renders rounded ectoplasm paws with matching bioluminescent gradients and outlines. Features contextual gripping when holding accessories (clasping both sides of the coffee mug, rapid alternating typing flutter across the terminal keyboard), celebratory raised-hand poses during typing bursts and sprint finishes, curious pondering postures, and snug tucked-in resting poses during sleep.
 - Adaptive Perching: When perched on a title bar or resting, bottom wisps calm down, eyelids close softly, and floating sleep particles ascend smoothly.
 
 ### 4. Animated Speech Bubble System
