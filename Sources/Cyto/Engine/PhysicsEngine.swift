@@ -80,6 +80,8 @@ public final class PhysicsEngine {
                         if footY >= ledge.topY - 6.0 && footY <= ledge.topY + tolerance {
                             entity.position.y = ledge.topY
                             entity.currentLedgeY = ledge.topY
+                            entity.perchedWindowID = ledge.windowID
+                            entity.perchedLedgeRect = ledge.rect
                             
                             if abs(entity.velocity.dy) > 220.0 {
                                 entity.applySquish(x: 1.25, y: 0.75)
@@ -111,6 +113,8 @@ public final class PhysicsEngine {
                     if abs(footY - ledge.topY) < 8.0 {
                         stillSupported = true
                         entity.position.y = ledge.topY
+                        entity.perchedWindowID = ledge.windowID
+                        entity.perchedLedgeRect = ledge.rect
                         break
                     }
                 }
@@ -119,6 +123,8 @@ public final class PhysicsEngine {
             if !stillSupported {
                 // Window moved or closed! Ghost floats gently downward
                 entity.currentLedgeY = nil
+                entity.perchedWindowID = nil
+                entity.perchedLedgeRect = nil
                 entity.transition(to: .falling)
                 entity.velocity.dy = -60.0
                 entity.applySquish(x: 0.90, y: 1.10)

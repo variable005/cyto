@@ -45,6 +45,8 @@ public final class CytoEntity {
     public var musicNotes: [MusicNoteParticle] = []
     
     public var currentLedgeY: CGFloat?
+    public var perchedWindowID: CGWindowID?
+    public var perchedLedgeRect: CGRect?
     public var isBeingInteractedWith: Bool = false
     public var affection: CGFloat = 0.5
     

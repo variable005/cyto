@@ -7,12 +7,14 @@ public struct Ledge: Sendable {
     public let topY: CGFloat
     public let minX: CGFloat
     public let maxX: CGFloat
+    public let windowID: CGWindowID?
     
-    public init(rect: CGRect) {
+    public init(rect: CGRect, windowID: CGWindowID? = nil) {
         self.rect = rect
         self.topY = rect.maxY
         self.minX = rect.minX
         self.maxX = rect.maxX
+        self.windowID = windowID
     }
 }
 
@@ -31,7 +33,7 @@ public final class WindowTracker {
             width: visibleFrame.width,
             height: 2.0
         )
-        ledges.append(Ledge(rect: groundRect))
+        ledges.append(Ledge(rect: groundRect, windowID: nil))
         
         // 2. Query visible on-screen windows from Quartz Window Server
         let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
@@ -46,7 +48,8 @@ public final class WindowTracker {
             }
             
             // Skip self window if known
-            if let windowNumber = dict[kCGWindowNumber as String] as? CGWindowID,
+            let windowNumber = dict[kCGWindowNumber as String] as? CGWindowID
+            if let windowNumber = windowNumber,
                let targetID = excludingWindowID,
                windowNumber == targetID {
                 continue
@@ -70,7 +73,7 @@ public final class WindowTracker {
             
             // Ensure window intersects target screen
             if cocoaRect.intersects(screen.frame) {
-                ledges.append(Ledge(rect: cocoaRect))
+                ledges.append(Ledge(rect: cocoaRect, windowID: windowNumber))
             }
         }
         

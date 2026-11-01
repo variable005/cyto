@@ -106,7 +106,29 @@ public final class CytoController: @unchecked Sendable {
     private func refreshLedges() {
         guard let screen = NSScreen.main else { return }
         let selfWindowID = overlayPanel.map { CGWindowID($0.windowNumber) }
-        self.cachedLedges = windowTracker.fetchWalkableLedges(excludingWindowID: selfWindowID, screen: screen)
+        let newLedges = windowTracker.fetchWalkableLedges(excludingWindowID: selfWindowID, screen: screen)
+        
+        // Window Hitchhiking: Ride along when the user moves or repositions an active window
+        if entity.state.isGrounded, let perchedID = entity.perchedWindowID, let oldRect = entity.perchedLedgeRect {
+            if let matchingLedge = newLedges.first(where: { $0.windowID == perchedID }) {
+                let dx = matchingLedge.rect.origin.x - oldRect.origin.x
+                let dy = matchingLedge.rect.origin.y - oldRect.origin.y
+                
+                if abs(dx) > 0.5 || abs(dy) > 0.5 {
+                    entity.position.x += dx
+                    entity.position.y += dy
+                    entity.currentLedgeY = matchingLedge.topY
+                    
+                    if abs(dx) > 1.5 {
+                        entity.facingDirection = dx > 0 ? 1.0 : -1.0
+                        entity.applySquish(x: 1.05, y: 0.95)
+                    }
+                }
+                entity.perchedLedgeRect = matchingLedge.rect
+            }
+        }
+        
+        self.cachedLedges = newLedges
         self.lastLedgeQueryTime = Date()
     }
     
@@ -117,8 +139,9 @@ public final class CytoController: @unchecked Sendable {
         
         guard let screen = NSScreen.main, let view = cytoView, let panel = overlayPanel else { return }
         
-        // 1. Periodically refresh walkable window ledges (every 0.5s)
-        if now.timeIntervalSince(lastLedgeQueryTime) > 0.5 {
+        // 1. Periodically refresh walkable window ledges (higher rate when hitched to a window)
+        let refreshInterval = (entity.state.isGrounded && entity.perchedWindowID != nil) ? 0.08 : 0.40
+        if now.timeIntervalSince(lastLedgeQueryTime) > refreshInterval {
             refreshLedges()
         }
         
