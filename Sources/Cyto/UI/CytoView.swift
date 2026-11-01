@@ -672,27 +672,16 @@ public final class CytoView: NSView {
         let bubbleH = max(28.0, textHeight + padY * 2.0)
         
         let bubbleX = min(bounds.width - bubbleW - 8.0, max(8.0, bounds.midX - bubbleW / 2.0))
-        let bubbleY = baseY + floatOffset + 6.0
+        let bubbleY = baseY + floatOffset + 4.0
         let bubbleRect = CGRect(x: bubbleX, y: bubbleY, width: bubbleW, height: bubbleH)
-        let cornerR = min(bubbleH / 2.0, 13.0)
+        let cornerR = min(bubbleH / 2.0, 14.0)
         
         // Active Hit-Testing Rect
-        activeBubbleRect = CGRect(x: bubbleX, y: bubbleY - 4.0, width: bubbleW, height: bubbleH + 6.0)
+        activeBubbleRect = CGRect(x: bubbleX, y: bubbleY - 2.0, width: bubbleW, height: bubbleH + 4.0)
         
-        // 3. Fluid Droplet Capsule & Organic Stem
+        // 3. Floating Liquid Glass Capsule Geometry
         let path = CGMutablePath()
         path.addRoundedRect(in: bubbleRect, cornerWidth: cornerR, cornerHeight: cornerR)
-        
-        let stemTip = CGPoint(x: bounds.midX, y: max(baseY - 2.0, bubbleY - 7.0))
-        let stemLeft = CGPoint(x: bounds.midX - 5.5, y: bubbleY + 1.5)
-        let stemRight = CGPoint(x: bounds.midX + 5.5, y: bubbleY + 1.5)
-        
-        let stemPath = CGMutablePath()
-        stemPath.move(to: stemLeft)
-        stemPath.addQuadCurve(to: stemTip, control: CGPoint(x: bounds.midX - 2.0, y: bubbleY - 4.0))
-        stemPath.addQuadCurve(to: stemRight, control: CGPoint(x: bounds.midX + 2.0, y: bubbleY - 4.0))
-        stemPath.closeSubpath()
-        path.addPath(stemPath)
         
         context.saveGState()
         
@@ -738,7 +727,7 @@ public final class CytoView: NSView {
             context.drawLinearGradient(
                 gradient,
                 start: CGPoint(x: centerX, y: bubbleY + bubbleH),
-                end: CGPoint(x: centerX, y: bubbleY - 5.0),
+                end: CGPoint(x: centerX, y: bubbleY),
                 options: []
             )
         }

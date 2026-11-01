@@ -396,6 +396,7 @@ stateDiagram-v2
 - Hardware Power Throttling: Reads battery capacity via IOKit power source APIs. If battery drops below 20% on DC power, Cyto rests peacefully to conserve CPU cycles.
 
 ### 9. Liquid Glass Materials & Pomodoro Focus Capsules
+- Floating Liquid Glass Capsule Geometry: Renders dialogue bubbles as continuous, seamless rounded translucent capsules without overlapping stems or arrow stroke intersections, delivering an uncluttered, modern desktop HUD aesthetic.
 - Liquid Glass Fluid Dynamics: Incorporates volume-preserving squash-and-stretch spring physics, optical caustic lens sheens, specular rim strokes, and dynamic light sweeps into dialogue bubbles and timer capsules.
 - Anti-Clipping Canvas Architecture: Expands the vector viewport to 320x230 points with automatic word-wrapping and multi-line bounding calculations, preventing text truncation across screen resolutions.
 - Floating Focus Timer Capsule: Suspends a frosted translucent pill above Cyto during 25-minute Pomodoro sprints with live monospaced countdown digits, a pulsing emerald status beacon, and an elapsed progress gauge.
