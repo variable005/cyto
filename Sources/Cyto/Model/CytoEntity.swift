@@ -49,6 +49,13 @@ public final class CytoEntity {
     public var isLowBattery: Bool = false
     public var batteryPercentage: Int? = nil
     
+    // Pomodoro Focus Timer & Micro-Breaks
+    public var isFocusSessionActive: Bool = false
+    public var focusSessionRemaining: TimeInterval = 0.0
+    public var focusSessionTotalDuration: TimeInterval = 25.0 * 60.0
+    public var isEyeBreakActive: Bool = false
+    public var eyeBreakTimer: TimeInterval = 0.0
+    
     public var currentLedgeY: CGFloat?
     public var perchedWindowID: CGWindowID?
     public var perchedLedgeRect: CGRect?

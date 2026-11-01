@@ -56,6 +56,8 @@ public final class CytoController: @unchecked Sendable {
             onSummon: { [weak self] in self?.summonToCenter() },
             onToggleSleep: { [weak self] in self?.toggleSleep() },
             onToggleInteractive: { [weak self] in self?.toggleInteractive() },
+            onToggleFocusSession: { [weak self] in self?.toggleFocusSession() },
+            onTriggerEyeBreak: { [weak self] in self?.triggerEyeBreak() },
             onSelectExpression: { [weak self] expr in self?.selectExpression(expr) },
             onSelectAccessory: { [weak self] acc in self?.selectAccessory(acc) },
             onQuit: { NSApp.terminate(nil) }
@@ -318,9 +320,38 @@ public final class CytoController: @unchecked Sendable {
             }
         }
         
-        // 7. Behavioral Decision State Machine (paused while user is typing)
+        // 6c. Pomodoro Focus Session & Eye Break Timers
+        if entity.isFocusSessionActive {
+            entity.focusSessionRemaining -= Double(dt)
+            if entity.focusSessionRemaining <= 0 {
+                entity.isFocusSessionActive = false
+                entity.focusSessionRemaining = 0.0
+                entity.accessory = .coffee
+                entity.expression = .excited
+                entity.speechBubbleText = "Sprint complete! Take a well-deserved break ✨"
+                entity.speechBubbleTimer = 4.0
+                entity.speechBubbleMaxDuration = 4.0
+                entity.applySquish(x: 1.25, y: 0.75)
+                entity.transition(to: .bouncing, duration: 0.5)
+            }
+        }
+        
+        if entity.isEyeBreakActive {
+            entity.eyeBreakTimer -= Double(dt)
+            entity.blinkFactor = 1.0 // Keep eyes closed during eye rest
+            if entity.eyeBreakTimer <= 0 {
+                entity.isEyeBreakActive = false
+                entity.blinkFactor = 0.0
+                entity.expression = .happy
+                entity.speechBubbleText = "Refreshed and ready to roll!"
+                entity.speechBubbleTimer = 2.5
+                entity.speechBubbleMaxDuration = 2.5
+            }
+        }
+        
+        // 7. Behavioral Decision State Machine (paused while user is typing or in focus session)
         entity.stateTimer += Double(dt)
-        if entity.stateTimer >= entity.stateDuration && entity.state.allowsDirectMotion && !entity.isBeingInteractedWith && !entity.isTypingObserved {
+        if entity.stateTimer >= entity.stateDuration && entity.state.allowsDirectMotion && !entity.isBeingInteractedWith && !entity.isTypingObserved && !entity.isFocusSessionActive {
             decideNextBehavior()
         }
         
@@ -345,7 +376,9 @@ public final class CytoController: @unchecked Sendable {
             musicTrack: musicEngine.isPlaying ? musicEngine.currentTrack : nil,
             isNight: entity.isNightMode,
             batteryPercent: entity.batteryPercentage,
-            isLowBattery: entity.isLowBattery
+            isLowBattery: entity.isLowBattery,
+            isFocusActive: entity.isFocusSessionActive,
+            focusRemainingSeconds: entity.focusSessionRemaining
         )
         
         // 11. Trigger redraw
@@ -419,6 +452,38 @@ public final class CytoController: @unchecked Sendable {
         } else {
             entity.transition(to: .sleeping, duration: 60.0)
         }
+    }
+    
+    public func toggleFocusSession() {
+        if entity.isFocusSessionActive {
+            entity.isFocusSessionActive = false
+            entity.focusSessionRemaining = 0.0
+            entity.accessory = .none
+            entity.speechBubbleText = "Focus sprint paused."
+            entity.speechBubbleTimer = 2.4
+            entity.speechBubbleMaxDuration = 2.4
+        } else {
+            entity.isFocusSessionActive = true
+            entity.focusSessionRemaining = 25.0 * 60.0
+            entity.focusSessionTotalDuration = 25.0 * 60.0
+            entity.accessory = .coding
+            entity.expression = .focused
+            entity.speechBubbleText = "25m focus sprint started! Let's lock in 🎯"
+            entity.speechBubbleTimer = 3.0
+            entity.speechBubbleMaxDuration = 3.0
+            entity.applySquish(x: 1.15, y: 0.88)
+        }
+    }
+    
+    public func triggerEyeBreak() {
+        entity.isEyeBreakActive = true
+        entity.eyeBreakTimer = 20.0
+        entity.expression = .sleepy
+        entity.blinkFactor = 1.0
+        entity.speechBubbleText = "Resting eyes for 20s... look 20ft away! 🌿"
+        entity.speechBubbleTimer = 3.5
+        entity.speechBubbleMaxDuration = 3.5
+        entity.applySquish(x: 1.08, y: 0.92)
     }
     
     public func toggleInteractive() {
