@@ -58,6 +58,7 @@ public final class CytoController: @unchecked Sendable {
             onToggleInteractive: { [weak self] in self?.toggleInteractive() },
             onToggleFocusSession: { [weak self] in self?.toggleFocusSession() },
             onTriggerEyeBreak: { [weak self] in self?.triggerEyeBreak() },
+            onDropTreat: { [weak self] in self?.dropTreat() },
             onSelectExpression: { [weak self] expr in self?.selectExpression(expr) },
             onSelectAccessory: { [weak self] acc in self?.selectAccessory(acc) },
             onQuit: { NSApp.terminate(nil) }
@@ -141,7 +142,7 @@ public final class CytoController: @unchecked Sendable {
         let dt = CGFloat(min(0.05, now.timeIntervalSince(lastFrameTime)))
         lastFrameTime = now
         
-        guard let screen = NSScreen.main, let view = cytoView, let panel = overlayPanel else { return }
+        guard let view = cytoView, let panel = overlayPanel else { return }
         
         // 1. Periodically refresh walkable window ledges (higher rate when hitched to a window)
         let refreshInterval = (entity.state.isGrounded && entity.perchedWindowID != nil) ? 0.08 : 0.40
@@ -355,8 +356,9 @@ public final class CytoController: @unchecked Sendable {
             decideNextBehavior()
         }
         
-        // 8. Kinematics & Physics Step (Floaty Ghost Gravity)
-        physicsEngine.update(entity: entity, deltaTime: dt, ledges: cachedLedges, screenBounds: screen.frame)
+        // 8. Kinematics & Physics Step (Multi-Display Traversal)
+        let totalDesktopBounds = NSScreen.screens.reduce(into: CGRect.null) { $0 = $0.union($1.frame) }
+        physicsEngine.update(entity: entity, deltaTime: dt, ledges: cachedLedges, screenBounds: totalDesktopBounds)
         
         // 9. Synchronize Window Origin with Entity Physics Position
         let targetOrigin = NSPoint(
@@ -484,6 +486,18 @@ public final class CytoController: @unchecked Sendable {
         entity.speechBubbleTimer = 3.5
         entity.speechBubbleMaxDuration = 3.5
         entity.applySquish(x: 1.08, y: 0.92)
+    }
+    
+    public func dropTreat() {
+        entity.accessory = .coffee
+        entity.mood = .happy
+        entity.expression = .happy
+        entity.applySquish(x: 1.25, y: 0.75)
+        entity.transition(to: .bouncing, duration: 0.5)
+        entity.speechBubbleText = "Ooh, warm coffee! Thank you ✨"
+        entity.speechBubbleTimer = 3.2
+        entity.speechBubbleMaxDuration = 3.2
+        NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
     }
     
     public func toggleInteractive() {

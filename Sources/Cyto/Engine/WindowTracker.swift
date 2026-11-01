@@ -21,25 +21,30 @@ public struct Ledge: Sendable {
 public final class WindowTracker {
     public init() {}
     
-    public func fetchWalkableLedges(excludingWindowID: CGWindowID? = nil, screen: NSScreen) -> [Ledge] {
+    public func fetchWalkableLedges(excludingWindowID: CGWindowID? = nil, screens: [NSScreen] = NSScreen.screens) -> [Ledge] {
         var ledges: [Ledge] = []
-        let primaryScreenHeight = NSScreen.screens.first?.frame.height ?? screen.frame.height
+        let primaryScreenHeight = screens.first?.frame.height ?? 1080.0
         
-        // 1. Bottom of the screen (the ground floor / Dock floor)
-        let visibleFrame = screen.visibleFrame
-        let groundRect = CGRect(
-            x: visibleFrame.minX,
-            y: visibleFrame.minY,
-            width: visibleFrame.width,
-            height: 2.0
-        )
-        ledges.append(Ledge(rect: groundRect, windowID: nil))
+        // 1. Bottom of each display (the ground floor / Dock floor per monitor)
+        for screen in screens {
+            let visibleFrame = screen.visibleFrame
+            let groundRect = CGRect(
+                x: visibleFrame.minX,
+                y: visibleFrame.minY,
+                width: visibleFrame.width,
+                height: 2.0
+            )
+            ledges.append(Ledge(rect: groundRect, windowID: nil))
+        }
         
         // 2. Query visible on-screen windows from Quartz Window Server
         let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
         guard let infoList = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else {
             return ledges
         }
+        
+        // Combined desktop rect across all connected displays
+        let totalDesktopRect = screens.reduce(into: CGRect.null) { $0 = $0.union($1.frame) }
         
         for dict in infoList {
             // Filter window layer (layer 0 is standard application window)
@@ -71,13 +76,17 @@ public final class WindowTracker {
             let cocoaY = primaryScreenHeight - (y + height)
             let cocoaRect = CGRect(x: x, y: cocoaY, width: width, height: height)
             
-            // Ensure window intersects target screen
-            if cocoaRect.intersects(screen.frame) {
+            // Ensure window intersects any connected display
+            if cocoaRect.intersects(totalDesktopRect) {
                 ledges.append(Ledge(rect: cocoaRect, windowID: windowNumber))
             }
         }
         
         // Return sorted by descending topY (highest windows first)
         return ledges.sorted(by: { $0.topY > $1.topY })
+    }
+    
+    public func fetchWalkableLedges(excludingWindowID: CGWindowID? = nil, screen: NSScreen) -> [Ledge] {
+        return fetchWalkableLedges(excludingWindowID: excludingWindowID, screens: NSScreen.screens)
     }
 }

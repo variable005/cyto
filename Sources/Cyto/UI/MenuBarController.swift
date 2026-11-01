@@ -21,6 +21,7 @@ public final class MenuBarController {
     private let onToggleInteractive: () -> Void
     private let onToggleFocusSession: () -> Void
     private let onTriggerEyeBreak: () -> Void
+    private let onDropTreat: () -> Void
     private let onSelectExpression: (JellyExpression) -> Void
     private let onSelectAccessory: (JellyAccessory) -> Void
     private let onQuit: () -> Void
@@ -31,6 +32,7 @@ public final class MenuBarController {
         onToggleInteractive: @escaping () -> Void,
         onToggleFocusSession: @escaping () -> Void,
         onTriggerEyeBreak: @escaping () -> Void,
+        onDropTreat: @escaping () -> Void,
         onSelectExpression: @escaping (JellyExpression) -> Void,
         onSelectAccessory: @escaping (JellyAccessory) -> Void,
         onQuit: @escaping () -> Void
@@ -40,6 +42,7 @@ public final class MenuBarController {
         self.onToggleInteractive = onToggleInteractive
         self.onToggleFocusSession = onToggleFocusSession
         self.onTriggerEyeBreak = onTriggerEyeBreak
+        self.onDropTreat = onDropTreat
         self.onSelectExpression = onSelectExpression
         self.onSelectAccessory = onSelectAccessory
         self.onQuit = onQuit
@@ -140,6 +143,10 @@ public final class MenuBarController {
         eyeBreak.target = self
         menu.addItem(eyeBreak)
         
+        let treatItem = NSMenuItem(title: "Drop Coffee Treat", action: #selector(treatClicked), keyEquivalent: "t")
+        treatItem.target = self
+        menu.addItem(treatItem)
+        
         let axTrusted = AXIsProcessTrusted()
         let axTitle = axTrusted ? "Enter Key Reactions: Enabled" : "Enable Enter Key Reactions (Accessibility)..."
         let axItem = NSMenuItem(title: axTitle, action: #selector(accessibilityClicked), keyEquivalent: "")
@@ -233,6 +240,10 @@ public final class MenuBarController {
     
     @objc private func eyeBreakClicked() {
         onTriggerEyeBreak()
+    }
+    
+    @objc private func treatClicked() {
+        onDropTreat()
     }
     
     @objc private func interactiveClicked() {
