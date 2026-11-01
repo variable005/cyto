@@ -276,7 +276,41 @@ public final class CytoView: NSView {
             context.drawLinearGradient(gradient, start: CGPoint(x: 0, y: h), end: CGPoint(x: 0, y: 0), options: [])
         }
         
+        // 1. Subsurface Bioluminescent Core Glow (Squishy Ectoplasm Depth)
+        let coreCenter = CGPoint(x: 0, y: headCenterY - 3.0)
+        let coreRadius = headR * 0.88
+        let glowPulse = 0.85 + CGFloat(sin(entity.breathPhase * 2.0)) * 0.15
+        let innerCoreColor = entity.isNightMode ?
+            CGColor(red: 0.82, green: 0.76, blue: 1.0, alpha: 0.38 * glowPulse) :
+            CGColor(red: 1.0, green: 0.98, blue: 1.0, alpha: 0.48 * glowPulse)
+        let outerCoreColor = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.0)
+        if let coreGrad = CGGradient(colorsSpace: colorSpace, colors: [innerCoreColor, outerCoreColor] as CFArray, locations: [0.0, 1.0]) {
+            context.drawRadialGradient(coreGrad, startCenter: coreCenter, startRadius: 0, endCenter: coreCenter, endRadius: coreRadius, options: [])
+        }
+        
+        // 2. 3D Interior Sheet Creases (Ambient Occlusion Folds)
+        context.saveGState()
+        context.setLineCap(.round)
+        for i in 1..<rippleCount {
+            let creaseX = -(headR + 2.0) + CGFloat(i) * segmentW
+            let creaseH: CGFloat = (i == 2) ? (h * 0.28) : (h * 0.20)
+            let creaseWave = sin(entity.wispPhase + CGFloat(i) * 1.4) * (waveAmp * 0.6)
+            let creasePath = CGMutablePath()
+            creasePath.move(to: CGPoint(x: creaseX, y: 1.0 + creaseWave))
+            creasePath.addQuadCurve(
+                to: CGPoint(x: creaseX * 0.80, y: creaseH),
+                control: CGPoint(x: creaseX * 0.90, y: creaseH * 0.45)
+            )
+            context.setStrokeColor(entity.isNightMode ?
+                CGColor(red: 0.55, green: 0.48, blue: 0.76, alpha: 0.35) :
+                CGColor(red: 0.68, green: 0.62, blue: 0.82, alpha: 0.30))
+            context.setLineWidth(1.6)
+            context.addPath(creasePath)
+            context.strokePath()
+        }
         context.restoreGState()
+        
+        context.restoreGState() // restore clip
         
         // Soft clean outline
         context.addPath(path)
@@ -303,6 +337,15 @@ public final class CytoView: NSView {
         let cupY = headCenterY - 6.0
         let leftCupRect = CGRect(x: -headR - cupW * 0.65, y: cupY, width: cupW, height: cupH)
         let rightCupRect = CGRect(x: headR - cupW * 0.35, y: cupY, width: cupW, height: cupH)
+        
+        // Metallic Brushed Aluminum Pivot Brackets
+        let bracketW: CGFloat = 4.0
+        let bracketH: CGFloat = 5.0
+        let leftBracket = CGRect(x: leftCupRect.midX - bracketW / 2.0, y: leftCupRect.maxY - 2.0, width: bracketW, height: bracketH)
+        let rightBracket = CGRect(x: rightCupRect.midX - bracketW / 2.0, y: rightCupRect.maxY - 2.0, width: bracketW, height: bracketH)
+        context.setFillColor(CGColor(red: 0.78, green: 0.80, blue: 0.88, alpha: 0.95))
+        context.fill(leftBracket)
+        context.fill(rightBracket)
         
         // Dark Obsidian Earcups
         context.setFillColor(CGColor(red: 0.18, green: 0.16, blue: 0.25, alpha: 1.0))
@@ -355,9 +398,9 @@ public final class CytoView: NSView {
         
         switch entity.expression {
         case .neutral:
-            // Vertical capsule / pill anime eyes
-            let eyeW: CGFloat = 5.0
-            let eyeH: CGFloat = 9.5
+            // Vertical capsule / pill anime eyes with double specular catchlights
+            let eyeW: CGFloat = 5.2
+            let eyeH: CGFloat = 9.8
             let gazeX = entity.eyeOffset.x * 1.8
             let gazeY = entity.eyeOffset.y * 1.5
             
@@ -367,6 +410,13 @@ public final class CytoView: NSView {
             context.addPath(CGPath(roundedRect: leftEye, cornerWidth: eyeW / 2.0, cornerHeight: eyeW / 2.0, transform: nil))
             context.addPath(CGPath(roundedRect: rightEye, cornerWidth: eyeW / 2.0, cornerHeight: eyeW / 2.0, transform: nil))
             context.fillPath()
+            
+            // Primary and secondary micro specular catchlights
+            context.setFillColor(CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.95))
+            context.fillEllipse(in: CGRect(x: -spacing + gazeX - 0.8, y: eyeY + gazeY + 1.2, width: 2.2, height: 2.2))
+            context.fillEllipse(in: CGRect(x: spacing + gazeX - 0.8, y: eyeY + gazeY + 1.2, width: 2.2, height: 2.2))
+            context.fillEllipse(in: CGRect(x: -spacing + gazeX + 0.6, y: eyeY + gazeY - 2.4, width: 1.3, height: 1.3))
+            context.fillEllipse(in: CGRect(x: spacing + gazeX + 0.6, y: eyeY + gazeY - 2.4, width: 1.3, height: 1.3))
             
         case .happy:
             // ^ ^ Closed smiling curved arcs
@@ -459,59 +509,111 @@ public final class CytoView: NSView {
     private func drawAccessory(context: CGContext, w: CGFloat, h: CGFloat) {
         switch entity.accessory {
         case .coffee:
-            // Holding cozy coffee mug in front
+            // Holding cozy ceramic coffee mug in front
             let mugRect = CGRect(x: -10.0, y: h * 0.20, width: 20.0, height: 16.0)
-            context.setFillColor(CGColor(red: 0.94, green: 0.90, blue: 0.85, alpha: 1.0))
-            context.addPath(CGPath(roundedRect: mugRect, cornerWidth: 3.0, cornerHeight: 3.0, transform: nil))
+            context.setFillColor(CGColor(red: 0.95, green: 0.92, blue: 0.88, alpha: 1.0))
+            context.addPath(CGPath(roundedRect: mugRect, cornerWidth: 3.5, cornerHeight: 3.5, transform: nil))
             context.fillPath()
             
-            // Coffee liquid
-            context.setFillColor(CGColor(red: 0.45, green: 0.28, blue: 0.18, alpha: 1.0))
-            context.fillEllipse(in: CGRect(x: -8.0, y: h * 0.20 + 10.0, width: 16.0, height: 4.0))
+            // Ceramic rim outline
+            context.setStrokeColor(CGColor(red: 0.82, green: 0.78, blue: 0.74, alpha: 1.0))
+            context.setLineWidth(1.0)
+            context.strokePath()
+            
+            // Mug handle on the right
+            context.saveGState()
+            context.setStrokeColor(CGColor(red: 0.90, green: 0.86, blue: 0.82, alpha: 1.0))
+            context.setLineWidth(1.8)
+            let handleRect = CGRect(x: 10.0, y: h * 0.20 + 3.0, width: 4.5, height: 10.0)
+            context.strokeEllipse(in: handleRect)
+            context.restoreGState()
+            
+            // Rich dark coffee brew with crema sheen
+            context.setFillColor(CGColor(red: 0.38, green: 0.22, blue: 0.14, alpha: 1.0))
+            context.fillEllipse(in: CGRect(x: -8.0, y: h * 0.20 + 10.5, width: 16.0, height: 4.0))
+            
+            // Animated rising harmonic steam wisps
+            context.saveGState()
+            context.setStrokeColor(CGColor(red: 0.95, green: 0.92, blue: 1.0, alpha: 0.38))
+            context.setLineWidth(1.2)
+            context.setLineCap(.round)
+            for s in 0..<2 {
+                let steamBaseX: CGFloat = (s == 0) ? -3.5 : 3.5
+                let steamY = h * 0.20 + 14.0
+                let steamPhase = CGFloat(entity.floatPhase) * 2.5 + CGFloat(s) * 1.8
+                let path = CGMutablePath()
+                path.move(to: CGPoint(x: steamBaseX, y: steamY))
+                path.addQuadCurve(
+                    to: CGPoint(x: steamBaseX + sin(steamPhase) * 2.5, y: steamY + 8.5),
+                    control: CGPoint(x: steamBaseX - sin(steamPhase) * 2.0, y: steamY + 4.0)
+                )
+                context.addPath(path)
+                context.strokePath()
+            }
+            context.restoreGState()
             
         case .coding:
-            // Holding mini glowing terminal screen </>
+            // Holding mini glowing terminal screen
             let screenRect = CGRect(x: -16.0, y: h * 0.16, width: 32.0, height: 20.0)
-            context.setFillColor(CGColor(red: 0.12, green: 0.14, blue: 0.20, alpha: 1.0))
-            context.addPath(CGPath(roundedRect: screenRect, cornerWidth: 4.0, cornerHeight: 4.0, transform: nil))
+            context.setFillColor(CGColor(red: 0.08, green: 0.10, blue: 0.16, alpha: 0.98))
+            context.addPath(CGPath(roundedRect: screenRect, cornerWidth: 3.5, cornerHeight: 3.5, transform: nil))
             context.fillPath()
             
-            // </> code glyph
+            // Subtle neon cyan/emerald terminal border
+            context.setStrokeColor(CGColor(red: 0.20, green: 0.90, blue: 0.65, alpha: 0.60))
+            context.setLineWidth(1.0)
+            context.addPath(CGPath(roundedRect: screenRect, cornerWidth: 3.5, cornerHeight: 3.5, transform: nil))
+            context.strokePath()
+            
+            // Matrix code text
             let font = NSFont.monospacedSystemFont(ofSize: 8.0, weight: .bold)
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: font,
-                .foregroundColor: NSColor(calibratedRed: 0.2, green: 0.95, blue: 0.65, alpha: 1.0)
+                .foregroundColor: NSColor(calibratedRed: 0.20, green: 0.95, blue: 0.65, alpha: 1.0)
             ]
             let codeStr = NSString(string: "</>")
-            codeStr.draw(at: NSPoint(x: -10.0, y: h * 0.16 + 4.0), withAttributes: attrs)
+            codeStr.draw(at: NSPoint(x: -12.0, y: h * 0.16 + 4.5), withAttributes: attrs)
             
-
+            // Animated blinking terminal cursor (_)
+            let cursorBlink = sin(CGFloat(entity.breathPhase) * 6.0) > 0.0
+            if cursorBlink {
+                let cursorAttrs: [NSAttributedString.Key: Any] = [
+                    .font: font,
+                    .foregroundColor: NSColor(calibratedRed: 0.25, green: 1.0, blue: 0.70, alpha: 0.90)
+                ]
+                let cursorStr = NSString(string: "_")
+                cursorStr.draw(at: NSPoint(x: 4.5, y: h * 0.16 + 4.5), withAttributes: cursorAttrs)
+            }
             
         case .none:
             break
         }
     }
     
-    // MARK: - Details: Blush, Sparkles, Zzz
+    // MARK: - Details: Airbrushed Radial Blush, Sparkles, Zzz
     private func drawBlush(context: CGContext, y: CGFloat, offset: CGFloat) {
-        context.setStrokeColor(CGColor(red: 1.0, green: 0.42, blue: 0.62, alpha: 0.72))
-        context.setLineWidth(1.4)
-        context.setLineCap(.round)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let blushInner = CGColor(red: 1.0, green: 0.40, blue: 0.60, alpha: 0.45)
+        let blushOuter = CGColor(red: 1.0, green: 0.40, blue: 0.60, alpha: 0.0)
         
-        for i in 0..<2 {
-            let ox = -offset + CGFloat(i) * 2.8
-            context.beginPath()
-            context.move(to: CGPoint(x: ox - 1.5, y: y - 2.0))
-            context.addLine(to: CGPoint(x: ox + 1.5, y: y + 2.0))
-            context.strokePath()
-        }
+        let blushR: CGFloat = 5.5
+        let leftCenter = CGPoint(x: -offset, y: y)
+        let rightCenter = CGPoint(x: offset, y: y)
         
-        for i in 0..<2 {
-            let ox = offset - CGFloat(i) * 2.8
-            context.beginPath()
-            context.move(to: CGPoint(x: ox - 1.5, y: y - 2.0))
-            context.addLine(to: CGPoint(x: ox + 1.5, y: y + 2.0))
-            context.strokePath()
+        if let blushGrad = CGGradient(colorsSpace: colorSpace, colors: [blushInner, blushOuter] as CFArray, locations: [0.0, 1.0]) {
+            // Left airbrushed radial blush oval
+            context.saveGState()
+            context.translateBy(x: leftCenter.x, y: leftCenter.y)
+            context.scaleBy(x: 1.25, y: 0.75)
+            context.drawRadialGradient(blushGrad, startCenter: .zero, startRadius: 0, endCenter: .zero, endRadius: blushR, options: [])
+            context.restoreGState()
+            
+            // Right airbrushed radial blush oval
+            context.saveGState()
+            context.translateBy(x: rightCenter.x, y: rightCenter.y)
+            context.scaleBy(x: 1.25, y: 0.75)
+            context.drawRadialGradient(blushGrad, startCenter: .zero, startRadius: 0, endCenter: .zero, endRadius: blushR, options: [])
+            context.restoreGState()
         }
     }
     
