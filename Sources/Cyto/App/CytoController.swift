@@ -80,7 +80,7 @@ public final class CytoController: @unchecked Sendable {
                     self.entity.mood = .playful
                 }
                 if let track = track, !track.isEmpty {
-                    self.entity.speechBubbleText = "Vibing to \(track) ♪"
+                    self.entity.speechBubbleText = "Vibing to \(track)"
                     self.entity.speechBubbleTimer = 2.8
                     self.entity.speechBubbleMaxDuration = 2.8
                 }
@@ -333,7 +333,7 @@ public final class CytoController: @unchecked Sendable {
                 entity.focusSessionRemaining = 0.0
                 entity.accessory = .coffee
                 entity.expression = .excited
-                entity.speechBubbleText = "Sprint complete! Take a well-deserved break ✨"
+                entity.speechBubbleText = "Sprint complete! Take a well-deserved break."
                 entity.speechBubbleTimer = 4.0
                 entity.speechBubbleMaxDuration = 4.0
                 entity.applySquish(x: 1.25, y: 0.75)
@@ -474,7 +474,7 @@ public final class CytoController: @unchecked Sendable {
             entity.focusSessionTotalDuration = 25.0 * 60.0
             entity.accessory = .coding
             entity.expression = .focused
-            entity.speechBubbleText = "25m focus sprint started! Let's lock in 🎯"
+            entity.speechBubbleText = "25m focus sprint started. Let's lock in."
             entity.speechBubbleTimer = 3.0
             entity.speechBubbleMaxDuration = 3.0
             entity.applySquish(x: 1.15, y: 0.88)
@@ -486,7 +486,7 @@ public final class CytoController: @unchecked Sendable {
         entity.eyeBreakTimer = 20.0
         entity.expression = .sleepy
         entity.blinkFactor = 1.0
-        entity.speechBubbleText = "Resting eyes for 20s... look 20ft away! 🌿"
+        entity.speechBubbleText = "Resting eyes for 20s... look 20ft away."
         entity.speechBubbleTimer = 3.5
         entity.speechBubbleMaxDuration = 3.5
         entity.applySquish(x: 1.08, y: 0.92)
@@ -498,7 +498,7 @@ public final class CytoController: @unchecked Sendable {
         entity.expression = .happy
         entity.applySquish(x: 1.25, y: 0.75)
         entity.transition(to: .bouncing, duration: 0.5)
-        entity.speechBubbleText = "Ooh, warm coffee! Thank you ✨"
+        entity.speechBubbleText = "Ooh, warm coffee! Thank you."
         entity.speechBubbleTimer = 3.2
         entity.speechBubbleMaxDuration = 3.2
         NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
