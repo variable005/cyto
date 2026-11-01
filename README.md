@@ -395,8 +395,11 @@ stateDiagram-v2
 - Nocturnal Twilight Palette: Automatically transitions ectoplasm to a calming midnight lavender hue during evening hours (8 PM to 6 AM) or when macOS Dark Mode is enabled.
 - Hardware Power Throttling: Reads battery capacity via IOKit power source APIs. If battery drops below 20% on DC power, Cyto rests peacefully to conserve CPU cycles.
 
-### 9. Pomodoro Focus Sprints & Micro-Breaks
-- 25-Minute Focus Timer: Locks Cyto into a quiet, attentive coding posture equipped with a mini terminal accessory to accompany deep work sessions.
+### 9. Liquid Glass Materials & Pomodoro Focus Capsules
+- Liquid Glass Fluid Dynamics: Incorporates volume-preserving squash-and-stretch spring physics, optical caustic lens sheens, specular rim strokes, and dynamic light sweeps into dialogue bubbles and timer capsules.
+- Anti-Clipping Canvas Architecture: Expands the vector viewport to 320x230 points with automatic word-wrapping and multi-line bounding calculations, preventing text truncation across screen resolutions.
+- Floating Focus Timer Capsule: Suspends a frosted translucent pill above Cyto during 25-minute Pomodoro sprints with live monospaced countdown digits, a pulsing emerald status beacon, and an elapsed progress gauge.
+- Intelligent Visual Stacking: Dynamically stacks speech bubbles above active timer capsules without collision, maintaining precise click-through hit testing for underlying macOS windows.
 - 20-20-20 Eye Strain Breaks: Dedicated 20-second resting break closes Cyto's eyelids and prompts the user to focus on a distant focal point.
 
 ### 10. Multi-Display Geometry & Interactive Treats
