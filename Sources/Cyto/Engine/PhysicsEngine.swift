@@ -20,19 +20,32 @@ public final class PhysicsEngine {
         entity.squishX += (targetSquishX - entity.squishX) * min(1.0, springConstant * deltaTime)
         entity.squishY += (targetSquishY - entity.squishY) * min(1.0, springConstant * deltaTime)
         
-        // 2. Oscillations for Float, Wisp ripples, and Headphone LED pulse
-        entity.floatPhase += deltaTime * 2.8
+        // 2. Continuous Affective Model Step (Smooth Valence-Arousal Interpolation)
+        entity.updateAffectiveState(deltaTime: deltaTime)
+        
+        // Breathing Phase modulated by emotional arousal (1.4 rad/s calm to 3.0 rad/s excited)
+        let breathSpeed = 1.4 + (entity.arousal * 1.6)
+        entity.breathPhase += deltaTime * breathSpeed
+        if entity.breathPhase > .pi * 2.0 {
+            entity.breathPhase -= .pi * 2.0
+        }
+        
+        // Oscillations for Float, Wisp ripples, and Headphone LED pulse modulated by arousal
+        let floatSpeed = 1.8 + (entity.arousal * 1.6)
+        entity.floatPhase += deltaTime * floatSpeed
         if entity.floatPhase > .pi * 2.0 {
             entity.floatPhase -= .pi * 2.0
         }
         
-        entity.wispPhase += deltaTime * 5.2
+        let wispSpeed = 3.6 + (entity.arousal * 2.6)
+        entity.wispPhase += deltaTime * wispSpeed
         if entity.wispPhase > .pi * 2.0 {
             entity.wispPhase -= .pi * 2.0
         }
         
         // Headphone LED pulsing glow
-        entity.headphoneGlowPhase += deltaTime * 3.2
+        let ledSpeed = 2.2 + (entity.arousal * 2.0)
+        entity.headphoneGlowPhase += deltaTime * ledSpeed
         if entity.headphoneGlowPhase > .pi * 2.0 {
             entity.headphoneGlowPhase -= .pi * 2.0
         }

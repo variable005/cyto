@@ -5,6 +5,7 @@ public final class MenuBarController {
     private var statusItem: NSStatusItem?
     
     private var moodItem: NSMenuItem?
+    private var workspaceItem: NSMenuItem?
     private var focusItem: NSMenuItem?
     private var musicItem: NSMenuItem?
     private var environmentItem: NSMenuItem?
@@ -67,6 +68,11 @@ public final class MenuBarController {
         mood.isEnabled = false
         menu.addItem(mood)
         self.moodItem = mood
+        
+        let workspace = NSMenuItem(title: "Workspace: Desktop", action: nil, keyEquivalent: "")
+        workspace.isEnabled = false
+        menu.addItem(workspace)
+        self.workspaceItem = workspace
         
         let focus = NSMenuItem(title: "Focus: Steady", action: nil, keyEquivalent: "")
         focus.isEnabled = false
@@ -175,9 +181,16 @@ public final class MenuBarController {
         batteryPercent: Int? = nil,
         isLowBattery: Bool = false,
         isFocusActive: Bool = false,
-        focusRemainingSeconds: TimeInterval = 0.0
+        focusRemainingSeconds: TimeInterval = 0.0,
+        activeAppName: String? = nil,
+        activeAppCategory: ActiveAppCategory = .other
     ) {
         moodItem?.title = "Mood: \(mood.rawValue.capitalized)"
+        if let appName = activeAppName, !appName.isEmpty {
+            workspaceItem?.title = "Workspace: \(appName) (\(activeAppCategory.rawValue))"
+        } else {
+            workspaceItem?.title = "Workspace: \(activeAppCategory.rawValue)"
+        }
         focusItem?.title = "Focus: \(focus.rawValue.capitalized)"
         
         if let track = musicTrack, !track.isEmpty {

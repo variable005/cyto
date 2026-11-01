@@ -29,6 +29,17 @@ public final class CytoEntity {
     public var headphoneSecondaryTilt: CGFloat = 0.0
     public var headphoneSecondaryVelocity: CGFloat = 0.0
     
+    // Affective Model (Continuous 2D Valence-Arousal Space)
+    public var valence: CGFloat = 0.5  // Range: -1.0 (fatigued/unhappy) to +1.0 (joyful/delighted)
+    public var arousal: CGFloat = 0.4  // Range: 0.0 (deep sleep/low energy) to +1.0 (hyper-focused/excited)
+    public var targetValence: CGFloat = 0.5
+    public var targetArousal: CGFloat = 0.4
+    
+    // Frontmost Workspace App Context Awareness
+    public var activeAppCategory: ActiveAppCategory = .other
+    public var activeAppName: String? = nil
+    public var hasUserManuallySetAccessory: Bool = false
+    
     public var stateTimer: TimeInterval
     public var stateDuration: TimeInterval
     public var blinkTimer: TimeInterval
@@ -99,6 +110,15 @@ public final class CytoEntity {
         self.squishY = y
     }
     
+    public func updateAffectiveState(deltaTime: CGFloat) {
+        let lerpFactor = min(1.0, deltaTime * 2.5)
+        valence += (targetValence - valence) * lerpFactor
+        arousal += (targetArousal - arousal) * lerpFactor
+        
+        valence = max(-1.0, min(1.0, valence))
+        arousal = max(0.0, min(1.0, arousal))
+    }
+    
     public func say(_ text: String, duration: TimeInterval = 2.4) {
         self.speechBubbleText = text
         self.speechBubbleTimer = duration
@@ -117,18 +137,28 @@ public final class CytoEntity {
         
         self.expression = emotion
         
-        // Dynamic head tilt matching the emotion
+        // Dynamic head tilt and continuous valence-arousal mapping
         switch emotion {
         case .curious:
             self.curiousTilt = 0.12
+            self.targetValence = 0.60
+            self.targetArousal = 0.50
         case .confused:
             self.curiousTilt = -0.14
+            self.targetValence = 0.35
+            self.targetArousal = 0.45
         case .focused:
             self.curiousTilt = 0.05
-        case .surprised:
+            self.targetValence = 0.75
+            self.targetArousal = 0.70
+        case .excited:
             self.curiousTilt = 0.0
-        case .happy, .excited:
+            self.targetValence = 0.95
+            self.targetArousal = 0.95
+        case .happy:
             self.curiousTilt = 0.0
+            self.targetValence = 0.85
+            self.targetArousal = 0.60
         default:
             self.curiousTilt = 0.0
         }
@@ -136,6 +166,8 @@ public final class CytoEntity {
     
     public func registerTypingBurstCompleted() {
         self.expression = .excited
+        self.targetValence = 0.95
+        self.targetArousal = 0.85
         
         let praiseQuotes = [
             "You got this!",
@@ -157,6 +189,9 @@ public final class CytoEntity {
     }
     
     public func registerDirectTap() {
+        self.targetValence = 0.90
+        self.targetArousal = 0.70
+        
         // Direct tap on Jelly
         let tapQuotes = [
             "Boo!",
@@ -178,6 +213,8 @@ public final class CytoEntity {
     
     public func registerEnterPressed() {
         self.expression = .excited // Excited sparkling face!
+        self.targetValence = 0.92
+        self.targetArousal = 0.88
         
         let jellyQuotes = [
             "Boo!",
@@ -211,24 +248,38 @@ public final class CytoEntity {
         case .sleeping:
             self.mood = .sleepy
             self.expression = .sleepy
+            self.targetArousal = 0.05
+            self.targetValence = 0.20
             self.applySquish(x: 1.03, y: 0.97) // Soft comfortable resting settle
         case .sitting:
             self.expression = .happy // ^ ^ sitting resting pose
+            self.targetArousal = 0.20
+            self.targetValence = 0.70
         case .walking:
             self.walkPhase = 0.0
             self.expression = .neutral
+            self.targetArousal = 0.45
+            self.targetValence = 0.55
         case .petted:
             self.affection = min(1.0, affection + 0.1)
             self.mood = .happy
             self.expression = .happy
+            self.targetArousal = 0.65
+            self.targetValence = 0.95
         case .mischievous:
             self.mood = .playful
             self.expression = .excited
+            self.targetArousal = 0.85
+            self.targetValence = 0.80
         case .dragged:
             self.expression = .surprised
+            self.targetArousal = 0.75
+            self.targetValence = 0.40
         default:
             if !isTypingObserved {
                 self.expression = .neutral
+                self.targetArousal = 0.35
+                self.targetValence = 0.50
             }
         }
     }

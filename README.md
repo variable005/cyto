@@ -394,9 +394,10 @@ stateDiagram-v2
 - Window Displacement Tracking: Associates perched entities with specific Quartz window identifiers, monitoring coordinate deltas across simulation ticks.
 - Real-Time Window Riding: When a user drags or repositions an active IDE or browser window, Cyto smoothly hitches a ride along the moving title bar with kinetic leaning.
 
-### 8. Circadian Luminescence & Hardware Energy Awareness
-- Nocturnal Twilight Palette: Automatically transitions ectoplasm to a calming midnight lavender hue during evening hours (8 PM to 6 AM) or when macOS Dark Mode is enabled.
-- Hardware Power Throttling: Reads battery capacity via IOKit power source APIs. If battery drops below 20% on DC power, Cyto rests peacefully to conserve CPU cycles.
+### 8. Affective Valence-Arousal Engine & Workspace App Awareness
+- Continuous 2D Affective Space: Simulates an emotional state defined by Valence (-1.0 to +1.0) and Arousal (0.0 to 1.0) with smooth linear interpolation. Arousal dynamically modulates organic breathing frequency, hover oscillation rates, wisp ripples, and LED ring pulsing (1.4 rad/s when resting, up to 3.0 rad/s during intense typing sprints).
+- Workspace Application Awareness: Non-invasively inspects frontmost application identifiers via `NSWorkspace` to contextualize Cyto's behavior. Automatically equips a mini glowing coding terminal with animated typing cursor during developer IDE sessions (Xcode, VS Code, Cursor, Terminal), relaxes with a cozy ceramic coffee mug during web browsing, or synchronizes with headphones during music playback.
+- Circadian Luminescence & Hardware Energy Awareness: Automatically transitions ectoplasm to a calming midnight lavender hue during evening hours (8 PM to 6 AM) or when macOS Dark Mode is enabled. Reads battery capacity via IOKit power source APIs. If battery drops below 20% on DC power, Cyto rests peacefully to conserve CPU cycles.
 
 ### 9. Liquid Glass Materials & Morphing Focus Cards
 - Animated Squarish Liquid Glass Focus Card: When a 25-minute Pomodoro focus sprint is initiated, the dialogue bubble dynamically morphs into an animated 168x96-point squarish Liquid Glass card utilizing volume-preserving spring elasticity, harmonic squash-and-stretch transitions, and real-time light sweep reflections.

@@ -2,12 +2,22 @@ import Foundation
 import AppKit
 import IOKit.ps
 
+public enum ActiveAppCategory: String, Sendable, CaseIterable {
+    case developerIDE = "Developer IDE"
+    case creativeAudio = "Music & Creative"
+    case webBrowser = "Web Browser"
+    case communication = "Communication"
+    case other = "Desktop Workspace"
+}
+
 public struct SystemContext: Sendable {
     public let isNight: Bool
     public let isDarkMode: Bool
     public let isLowBattery: Bool
     public let batteryPercentage: Int?
     public let isPluggedIn: Bool
+    public let activeAppCategory: ActiveAppCategory
+    public let activeAppName: String?
 }
 
 public final class SystemContextEngine: @unchecked Sendable {
@@ -20,14 +30,16 @@ public final class SystemContextEngine: @unchecked Sendable {
             isDarkMode: false,
             isLowBattery: false,
             batteryPercentage: nil,
-            isPluggedIn: true
+            isPluggedIn: true,
+            activeAppCategory: .other,
+            activeAppName: nil
         )
         self.cachedContext = sample()
     }
     
     public func updateContext() -> SystemContext {
         let now = Date()
-        if now.timeIntervalSince(lastQueryTime) > 10.0 {
+        if now.timeIntervalSince(lastQueryTime) > 1.8 {
             cachedContext = sample()
             lastQueryTime = now
         }
@@ -73,12 +85,42 @@ public final class SystemContextEngine: @unchecked Sendable {
             }
         }
         
+        // 4. Frontmost Workspace Application Context
+        let frontApp = NSWorkspace.shared.frontmostApplication
+        let appName = frontApp?.localizedName
+        let bundleID = (frontApp?.bundleIdentifier ?? "").lowercased()
+        let nameLower = (appName ?? "").lowercased()
+        
+        let category: ActiveAppCategory
+        if bundleID.contains("xcode") || bundleID.contains("vscode") || bundleID.contains("cursor") ||
+           bundleID.contains("terminal") || bundleID.contains("iterm") || bundleID.contains("intellij") ||
+           bundleID.contains("sublime") || nameLower.contains("terminal") || nameLower.contains("code") ||
+           nameLower.contains("xcode") || nameLower.contains("cursor") {
+            category = .developerIDE
+        } else if bundleID.contains("spotify") || bundleID.contains("music") ||
+                  bundleID.contains("logic") || bundleID.contains("ableton") ||
+                  nameLower.contains("spotify") || nameLower.contains("music") {
+            category = .creativeAudio
+        } else if bundleID.contains("safari") || bundleID.contains("chrome") ||
+                  bundleID.contains("arc") || bundleID.contains("firefox") ||
+                  bundleID.contains("edge") || bundleID.contains("brave") {
+            category = .webBrowser
+        } else if bundleID.contains("slack") || bundleID.contains("discord") ||
+                  bundleID.contains("telegram") || bundleID.contains("messages") ||
+                  bundleID.contains("teams") {
+            category = .communication
+        } else {
+            category = .other
+        }
+        
         return SystemContext(
             isNight: isNight,
             isDarkMode: isDarkMode,
             isLowBattery: isLowBattery,
             batteryPercentage: batteryPct,
-            isPluggedIn: isPluggedIn
+            isPluggedIn: isPluggedIn,
+            activeAppCategory: category,
+            activeAppName: appName
         )
     }
 }

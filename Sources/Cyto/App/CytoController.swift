@@ -222,13 +222,37 @@ public final class CytoController: @unchecked Sendable {
         
         previousKeyIdle = keyIdle
         
-        // 2b. System Context, Circadian Rhythm & Battery Sampling
+        // 2b. System Context, Workspace App Awareness, Circadian Rhythm & Battery
         let sysContext = systemContextEngine.updateContext()
         entity.isNightMode = sysContext.isNight || sysContext.isDarkMode
         entity.batteryPercentage = sysContext.batteryPercentage
+        entity.activeAppCategory = sysContext.activeAppCategory
+        entity.activeAppName = sysContext.activeAppName
+        
+        // Automatic Workspace Accessory Context Adaptation (when not manually forced)
+        if !entity.hasUserManuallySetAccessory && !entity.isFocusSessionActive {
+            switch sysContext.activeAppCategory {
+            case .developerIDE:
+                if entity.accessory != .coding && entity.state != .sleeping {
+                    entity.accessory = .coding
+                }
+            case .creativeAudio:
+                if entity.accessory != .none {
+                    entity.accessory = .none
+                }
+            case .webBrowser:
+                if entity.accessory != .coffee && entity.state != .sleeping && entity.focusTier == .steady {
+                    entity.accessory = .coffee
+                }
+            case .communication, .other:
+                break
+            }
+        }
         
         if sysContext.isLowBattery && !entity.isLowBattery {
             entity.isLowBattery = true
+            entity.targetValence = 0.10
+            entity.targetArousal = 0.15
             if entity.state != .sleeping {
                 entity.speechBubbleText = "Low battery... conserving energy zzz"
                 entity.speechBubbleTimer = 3.0
@@ -237,6 +261,8 @@ public final class CytoController: @unchecked Sendable {
             }
         } else if !sysContext.isLowBattery && entity.isLowBattery {
             entity.isLowBattery = false
+            entity.targetArousal = 0.40
+            entity.targetValence = 0.60
         }
         
         // Query focus tier
@@ -384,7 +410,9 @@ public final class CytoController: @unchecked Sendable {
             batteryPercent: entity.batteryPercentage,
             isLowBattery: entity.isLowBattery,
             isFocusActive: entity.isFocusSessionActive,
-            focusRemainingSeconds: entity.focusSessionRemaining
+            focusRemainingSeconds: entity.focusSessionRemaining,
+            activeAppName: entity.activeAppName,
+            activeAppCategory: entity.activeAppCategory
         )
         
         // 11. Trigger redraw
@@ -438,6 +466,7 @@ public final class CytoController: @unchecked Sendable {
     }
     
     public func selectAccessory(_ accessory: JellyAccessory) {
+        entity.hasUserManuallySetAccessory = true
         entity.accessory = accessory
         entity.applySquish(x: 1.12, y: 0.90)
     }
@@ -493,6 +522,7 @@ public final class CytoController: @unchecked Sendable {
     }
     
     public func dropTreat() {
+        entity.hasUserManuallySetAccessory = true
         entity.accessory = .coffee
         entity.mood = .happy
         entity.expression = .happy
