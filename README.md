@@ -395,12 +395,12 @@ stateDiagram-v2
 - Nocturnal Twilight Palette: Automatically transitions ectoplasm to a calming midnight lavender hue during evening hours (8 PM to 6 AM) or when macOS Dark Mode is enabled.
 - Hardware Power Throttling: Reads battery capacity via IOKit power source APIs. If battery drops below 20% on DC power, Cyto rests peacefully to conserve CPU cycles.
 
-### 9. Liquid Glass Materials & Pomodoro Focus Capsules
-- Floating Liquid Glass Capsule Geometry: Renders dialogue bubbles as continuous, seamless rounded translucent capsules without overlapping stems or arrow stroke intersections, delivering an uncluttered, modern desktop HUD aesthetic.
-- Liquid Glass Fluid Dynamics: Incorporates volume-preserving squash-and-stretch spring physics, optical caustic lens sheens, specular rim strokes, and dynamic light sweeps into dialogue bubbles and timer capsules.
+### 9. Liquid Glass Materials & Morphing Focus Cards
+- Animated Squarish Liquid Glass Focus Card: When a 25-minute Pomodoro focus sprint is initiated, the dialogue bubble dynamically morphs into an animated 168x96-point squarish Liquid Glass card utilizing volume-preserving spring elasticity, harmonic squash-and-stretch transitions, and real-time light sweep reflections.
+- Enlarged Monospaced Countdown Timer: Centers a 24-point bold monospaced countdown clock (mm:ss) within the focus card, flanked by a pulsing neon emerald status beacon, sprint category badge, and an integrated bottom micro progress gauge.
+- Seamless Dialogue Unification: Embeds active focus affirmations and task completion dialogue directly into the lower register of the squarish focus card, transitioning smoothly into flow-state reminders without UI clutter.
+- Pure Floating Capsule Geometry: Renders standard dialogue bubbles as seamless, rounded translucent capsules with zero overlapping arrows or stroke intersections for standard desktop interactions.
 - Anti-Clipping Canvas Architecture: Expands the vector viewport to 320x230 points with automatic word-wrapping and multi-line bounding calculations, preventing text truncation across screen resolutions.
-- Floating Focus Timer Capsule: Suspends a frosted translucent pill above Cyto during 25-minute Pomodoro sprints with live monospaced countdown digits, a pulsing emerald status beacon, and an elapsed progress gauge.
-- Intelligent Visual Stacking: Dynamically stacks speech bubbles above active timer capsules without collision, maintaining precise click-through hit testing for underlying macOS windows.
 - 20-20-20 Eye Strain Breaks: Dedicated 20-second resting break closes Cyto's eyelids and prompts the user to focus on a distant focal point.
 
 ### 10. Multi-Display Geometry & Interactive Treats
