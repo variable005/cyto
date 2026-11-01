@@ -938,32 +938,17 @@ public final class CytoView: NSView {
         context.strokePath()
         context.restoreGState()
         
-        // 9. Top Header Row: Pulsing Neon Beacon & Category Label
-        let dotAlpha = (0.75 + CGFloat(sin(entity.breathPhase * 3.2)) * 0.25) * alpha
-        let dotCenter = CGPoint(x: cardX + 18.0, y: cardY + cardH - 18.0)
-        let dotR: CGFloat = 3.5
-        let dotRect = CGRect(x: dotCenter.x - dotR, y: dotCenter.y - dotR, width: dotR * 2.0, height: dotR * 2.0)
-        
-        context.saveGState()
-        context.setShadow(
-            offset: .zero,
-            blur: 6.0,
-            color: CGColor(red: 0.05, green: 0.95, blue: 0.70, alpha: dotAlpha * 0.9)
-        )
-        context.setFillColor(CGColor(red: 0.08, green: 0.88, blue: 0.68, alpha: dotAlpha))
-        context.fillEllipse(in: dotRect)
-        context.restoreGState()
-        
+        // 9. Top Header Row: Clean Category Label & Session Badge
         let headerFont = NSFont.systemFont(ofSize: 8.5, weight: .heavy)
         let headerColor = entity.isNightMode ?
-            NSColor(calibratedRed: 0.38, green: 0.34, blue: 0.52, alpha: 0.85 * alpha) :
+            NSColor(calibratedRed: 0.40, green: 0.36, blue: 0.54, alpha: 0.85 * alpha) :
             NSColor(calibratedRed: 0.42, green: 0.38, blue: 0.58, alpha: 0.85 * alpha)
         let headerAttrs: [NSAttributedString.Key: Any] = [
             .font: headerFont,
             .foregroundColor: headerColor
         ]
         let headerStr = NSAttributedString(string: "POMODORO SPRINT", attributes: headerAttrs)
-        headerStr.draw(at: CGPoint(x: cardX + 28.0, y: cardY + cardH - 23.5))
+        headerStr.draw(at: CGPoint(x: cardX + 16.0, y: cardY + cardH - 22.0))
         
         let badgeFont = NSFont.systemFont(ofSize: 8.5, weight: .bold)
         let badgeAttrs: [NSAttributedString.Key: Any] = [
@@ -971,7 +956,7 @@ public final class CytoView: NSView {
             .foregroundColor: headerColor
         ]
         let badgeStr = NSAttributedString(string: "25M", attributes: badgeAttrs)
-        badgeStr.draw(at: CGPoint(x: cardX + cardW - 38.0, y: cardY + cardH - 23.5))
+        badgeStr.draw(at: CGPoint(x: cardX + cardW - 38.0, y: cardY + cardH - 22.0))
         
         // 10. Center Prominent Countdown Timer (Much Bigger Typography)
         let timeStr = String(format: "%02d:%02d", mins, secs)

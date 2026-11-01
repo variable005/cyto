@@ -397,7 +397,7 @@ stateDiagram-v2
 
 ### 9. Liquid Glass Materials & Morphing Focus Cards
 - Animated Squarish Liquid Glass Focus Card: When a 25-minute Pomodoro focus sprint is initiated, the dialogue bubble dynamically morphs into an animated 168x96-point squarish Liquid Glass card utilizing volume-preserving spring elasticity, harmonic squash-and-stretch transitions, and real-time light sweep reflections.
-- Enlarged Monospaced Countdown Timer: Centers a 24-point bold monospaced countdown clock (mm:ss) within the focus card, flanked by a pulsing neon emerald status beacon, sprint category badge, and an integrated bottom micro progress gauge.
+- Enlarged Monospaced Countdown Timer: Centers a 24-point bold monospaced countdown clock (mm:ss) within the focus card, accompanied by a sprint category header, session duration badge, and an integrated bottom micro progress gauge.
 - Seamless Dialogue Unification: Embeds active focus affirmations and task completion dialogue directly into the lower register of the squarish focus card, transitioning smoothly into flow-state reminders without UI clutter.
 - Pure Floating Capsule Geometry: Renders standard dialogue bubbles as seamless, rounded translucent capsules with zero overlapping arrows or stroke intersections for standard desktop interactions.
 - Anti-Clipping Canvas Architecture: Expands the vector viewport to 320x230 points with automatic word-wrapping and multi-line bounding calculations, preventing text truncation across screen resolutions.
