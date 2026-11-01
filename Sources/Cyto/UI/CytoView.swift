@@ -208,16 +208,14 @@ public final class CytoView: NSView {
         context.restoreGState()
         
         // Determine base height above Cyto's dome head
-        var currentStackY = cy + h + 8.0
+        let baseY = cy + h + 8.0
         
-        // 8. Floating Liquid Glass Focus Timer Capsule (when Pomodoro sprint is active)
+        // When Pomodoro focus sprint is active, chat bubble morphs into an animated squarish Liquid Glass Focus Card
         if entity.isFocusSessionActive {
-            currentStackY = drawLiquidGlassTimerPill(context: context, baseY: currentStackY)
-        }
-        
-        // 9. Liquid Glass Speech Bubble (stacks above timer if both active)
-        if let speech = entity.speechBubbleText, entity.speechBubbleTimer > 0 {
-            drawSpeechBubble(context: context, text: speech, baseY: currentStackY)
+            drawLiquidGlassFocusCard(context: context, baseY: baseY)
+        } else if let speech = entity.speechBubbleText, entity.speechBubbleTimer > 0 {
+            // Standard floating liquid glass dialogue capsule
+            drawSpeechBubble(context: context, text: speech, baseY: baseY)
         }
     }
     
@@ -786,51 +784,79 @@ public final class CytoView: NSView {
         context.restoreGState()
     }
     
-    // MARK: - Floating Liquid Glass Focus Timer Capsule
-    @discardableResult
-    private func drawLiquidGlassTimerPill(context: CGContext, baseY: CGFloat) -> CGFloat {
-        let remaining = max(0.0, entity.focusSessionRemaining)
+    // MARK: - Animated Squarish Liquid Glass Focus Card
+    private func drawLiquidGlassFocusCard(context: CGContext, baseY: CGFloat) {
         let total = max(1.0, entity.focusSessionTotalDuration)
+        let remaining = max(0.0, entity.focusSessionRemaining)
+        let elapsed = total - remaining
         let mins = Int(remaining) / 60
         let secs = Int(remaining) % 60
-        let progress = CGFloat(max(0.0, min(1.0, 1.0 - (remaining / total))))
+        let progress = CGFloat(max(0.0, min(1.0, elapsed / total)))
         
-        let pillW: CGFloat = 104.0
-        let pillH: CGFloat = 26.0
-        let cornerR: CGFloat = pillH / 2.0
+        // 1. Fluid Volume-Preserving Liquid Spring Morph Animation
+        let morphDuration: CGFloat = 0.65
+        let scaleX: CGFloat
+        let scaleY: CGFloat
+        let alpha: CGFloat
+        let floatOffset: CGFloat
         
-        let floatBob = sin(CGFloat(entity.floatPhase) * 2.2) * 1.5
-        let pillX = bounds.midX - pillW / 2.0
-        let pillY = baseY + floatBob + 2.0
-        let pillRect = CGRect(x: pillX, y: pillY, width: pillW, height: pillH)
+        if elapsed < Double(morphDuration) {
+            let t = CGFloat(elapsed / Double(morphDuration))
+            let decay = exp(-4.2 * t)
+            let wobble = sin(t * .pi * 3.5) * decay * 0.28
+            let baseScale = min(1.0, t * 1.35)
+            scaleX = max(0.05, baseScale * (1.0 + wobble))
+            scaleY = max(0.05, baseScale * (1.0 - wobble * 0.85))
+            alpha = min(1.0, t * 2.5)
+            floatOffset = (1.0 - t) * 8.0
+        } else {
+            // Ambient liquid surface-tension breathing
+            let pulse = sin(CGFloat(entity.breathPhase) * 2.2) * 0.012
+            scaleX = 1.0 + pulse
+            scaleY = 1.0 - pulse
+            alpha = 1.0
+            floatOffset = sin(CGFloat(entity.floatPhase) * 2.2) * 1.5
+        }
         
-        // Save active rect for hit-testing (click to pause/toggle sprint)
-        activeTimerRect = CGRect(x: pillX - 4.0, y: pillY - 4.0, width: pillW + 8.0, height: pillH + 8.0)
+        guard alpha > 0.02 else {
+            activeTimerRect = nil
+            activeBubbleRect = nil
+            return
+        }
         
-        // Liquid surface tension breathing
-        let breathPulse = sin(CGFloat(entity.breathPhase) * 2.8) * 0.012
-        let scaleX = 1.0 + breathPulse
-        let scaleY = 1.0 - breathPulse
+        // 2. Squarish Card Geometry (168pt x 96pt)
+        let cardW: CGFloat = 168.0
+        let cardH: CGFloat = 96.0
+        let cornerR: CGFloat = 18.0
+        
+        let cardX = bounds.midX - cardW / 2.0
+        let cardY = baseY + floatOffset + 4.0
+        let cardRect = CGRect(x: cardX, y: cardY, width: cardW, height: cardH)
+        
+        // Update Hit-Testing Rects
+        activeTimerRect = cardRect.insetBy(dx: -3.0, dy: -3.0)
+        activeBubbleRect = cardRect.insetBy(dx: -3.0, dy: -3.0)
         
         let path = CGMutablePath()
-        path.addRoundedRect(in: pillRect, cornerWidth: cornerR, cornerHeight: cornerR)
+        path.addRoundedRect(in: cardRect, cornerWidth: cornerR, cornerHeight: cornerR)
         
         context.saveGState()
         
-        let centerX = pillRect.midX
-        let centerY = pillRect.midY
+        // Squash & Stretch around card center
+        let centerX = cardRect.midX
+        let centerY = cardRect.midY
         context.translateBy(x: centerX, y: centerY)
         context.scaleBy(x: scaleX, y: scaleY)
         context.translateBy(x: -centerX, y: -centerY)
         
-        // 1. Ethereal Ambient Drop Shadow
+        // 3. Ethereal Ambient Drop Shadow
         context.setShadow(
-            offset: CGSize(width: 0, height: -3.0),
-            blur: 10.0,
-            color: CGColor(red: 0.14, green: 0.10, blue: 0.30, alpha: 0.22)
+            offset: CGSize(width: 0, height: -4.0),
+            blur: 14.0,
+            color: CGColor(red: 0.14, green: 0.10, blue: 0.32, alpha: 0.24 * alpha)
         )
         
-        // 2. Frosted Translucent Gradient Fill
+        // 4. Frosted Translucent Gradient Fill
         context.saveGState()
         context.addPath(path)
         context.clip()
@@ -841,25 +867,25 @@ public final class CytoView: NSView {
         let botColor: CGColor
         
         if entity.isNightMode {
-            topColor = CGColor(red: 0.94, green: 0.92, blue: 1.0, alpha: 0.92)
-            midColor = CGColor(red: 0.84, green: 0.80, blue: 0.96, alpha: 0.85)
-            botColor = CGColor(red: 0.72, green: 0.66, blue: 0.88, alpha: 0.78)
+            topColor = CGColor(red: 0.95, green: 0.93, blue: 1.0, alpha: 0.93 * alpha)
+            midColor = CGColor(red: 0.85, green: 0.81, blue: 0.96, alpha: 0.86 * alpha)
+            botColor = CGColor(red: 0.73, green: 0.67, blue: 0.88, alpha: 0.78 * alpha)
         } else {
-            topColor = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.94)
-            midColor = CGColor(red: 0.95, green: 0.93, blue: 0.99, alpha: 0.88)
-            botColor = CGColor(red: 0.90, green: 0.86, blue: 0.97, alpha: 0.80)
+            topColor = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.94 * alpha)
+            midColor = CGColor(red: 0.95, green: 0.93, blue: 0.99, alpha: 0.88 * alpha)
+            botColor = CGColor(red: 0.90, green: 0.86, blue: 0.97, alpha: 0.80 * alpha)
         }
         
         if let gradient = CGGradient(colorsSpace: colorSpace, colors: [topColor, midColor, botColor] as CFArray, locations: [0.0, 0.45, 1.0]) {
-            context.drawLinearGradient(gradient, start: CGPoint(x: centerX, y: pillY + pillH), end: CGPoint(x: centerX, y: pillY), options: [])
+            context.drawLinearGradient(gradient, start: CGPoint(x: centerX, y: cardY + cardH), end: CGPoint(x: centerX, y: cardY), options: [])
         }
         
-        // 3. Inner Caustic Refraction (Top Edge Lens Highlight Sheen)
-        let sheenRect = CGRect(x: pillX + 6.0, y: pillY + pillH - 5.5, width: pillW - 12.0, height: 3.5)
+        // 5. Inner Caustic Refraction (Top Edge Lens Highlight Sheen)
+        let sheenRect = CGRect(x: cardX + 8.0, y: cardY + cardH - 6.5, width: cardW - 16.0, height: 4.5)
         let sheenPath = CGMutablePath()
-        sheenPath.addRoundedRect(in: sheenRect, cornerWidth: 1.75, cornerHeight: 1.75)
-        let sheenTop = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.68)
-        let sheenBot = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.05)
+        sheenPath.addRoundedRect(in: sheenRect, cornerWidth: 2.25, cornerHeight: 2.25)
+        let sheenTop = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.70 * alpha)
+        let sheenBot = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.05 * alpha)
         if let sheenGrad = CGGradient(colorsSpace: colorSpace, colors: [sheenTop, sheenBot] as CFArray, locations: [0.0, 1.0]) {
             context.saveGState()
             context.addPath(sheenPath)
@@ -868,83 +894,126 @@ public final class CytoView: NSView {
             context.restoreGState()
         }
         
-        // 4. Micro Progress Gauge along Bottom Rim
-        let trackX = pillX + 16.0
-        let trackW = pillW - 32.0
-        let trackY = pillY + 3.0
-        let trackH: CGFloat = 2.0
+        // 6. Dynamic Liquid Shimmer Light Pass
+        let shimmerPhase = CGFloat(fmod(Double(elapsed) * 0.40, 1.0))
+        let shimmerX = cardX - 50.0 + (cardW + 100.0) * shimmerPhase
+        let shimmerRect = CGRect(x: shimmerX, y: cardY, width: 36.0, height: cardH)
+        let shimLeft = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.0)
+        let shimMid = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.24 * alpha)
+        let shimRight = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.0)
+        if let shimGrad = CGGradient(colorsSpace: colorSpace, colors: [shimLeft, shimMid, shimRight] as CFArray, locations: [0.0, 0.5, 1.0]) {
+            context.saveGState()
+            context.clip(to: shimmerRect)
+            context.drawLinearGradient(shimGrad, start: CGPoint(x: shimmerX, y: cardY), end: CGPoint(x: shimmerX + 36.0, y: cardY), options: [])
+            context.restoreGState()
+        }
         
-        // Track Background
-        context.setFillColor(CGColor(red: 0.70, green: 0.65, blue: 0.82, alpha: 0.35))
+        // 7. Micro Progress Gauge along Bottom Rim
+        let trackX = cardX + 16.0
+        let trackW = cardW - 32.0
+        let trackY = cardY + 7.0
+        let trackH: CGFloat = 2.5
+        
+        context.setFillColor(CGColor(red: 0.70, green: 0.65, blue: 0.82, alpha: 0.32 * alpha))
         let trackRect = CGRect(x: trackX, y: trackY, width: trackW, height: trackH)
         context.fill(trackRect)
         
-        // Progress Fill with Glowing Emerald/Cyan
         if progress > 0.005 {
             let fillW = trackW * progress
             let fillRect = CGRect(x: trackX, y: trackY, width: fillW, height: trackH)
-            context.setFillColor(CGColor(red: 0.10, green: 0.82, blue: 0.65, alpha: 0.95))
+            context.setFillColor(CGColor(red: 0.10, green: 0.84, blue: 0.66, alpha: 0.95 * alpha))
             context.fill(fillRect)
         }
         
         context.restoreGState() // restore clip
         
-        // 5. Specular Rim Stroke
+        // 8. Specular Rim Stroke
         context.saveGState()
         context.addPath(path)
         let rimColor = entity.isNightMode ?
-            CGColor(red: 0.90, green: 0.86, blue: 1.0, alpha: 0.88) :
-            CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.92)
+            CGColor(red: 0.92, green: 0.88, blue: 1.0, alpha: 0.90 * alpha) :
+            CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.94 * alpha)
         context.setStrokeColor(rimColor)
-        context.setLineWidth(1.2)
+        context.setLineWidth(1.3)
         context.strokePath()
         context.restoreGState()
         
-        // 6. Pulsing Neon Focus Beacon Dot (●)
-        let dotAlpha = 0.75 + CGFloat(sin(entity.breathPhase * 3.2)) * 0.25
-        let dotCenter = CGPoint(x: pillX + 15.0, y: pillY + pillH / 2.0)
-        let dotR: CGFloat = 3.2
+        // 9. Top Header Row: Pulsing Neon Beacon & Category Label
+        let dotAlpha = (0.75 + CGFloat(sin(entity.breathPhase * 3.2)) * 0.25) * alpha
+        let dotCenter = CGPoint(x: cardX + 18.0, y: cardY + cardH - 18.0)
+        let dotR: CGFloat = 3.5
         let dotRect = CGRect(x: dotCenter.x - dotR, y: dotCenter.y - dotR, width: dotR * 2.0, height: dotR * 2.0)
         
         context.saveGState()
         context.setShadow(
             offset: .zero,
-            blur: 5.0,
+            blur: 6.0,
             color: CGColor(red: 0.05, green: 0.95, blue: 0.70, alpha: dotAlpha * 0.9)
         )
         context.setFillColor(CGColor(red: 0.08, green: 0.88, blue: 0.68, alpha: dotAlpha))
         context.fillEllipse(in: dotRect)
         context.restoreGState()
         
-        // 7. High-Precision Monospaced Countdown Text
+        let headerFont = NSFont.systemFont(ofSize: 8.5, weight: .heavy)
+        let headerColor = entity.isNightMode ?
+            NSColor(calibratedRed: 0.38, green: 0.34, blue: 0.52, alpha: 0.85 * alpha) :
+            NSColor(calibratedRed: 0.42, green: 0.38, blue: 0.58, alpha: 0.85 * alpha)
+        let headerAttrs: [NSAttributedString.Key: Any] = [
+            .font: headerFont,
+            .foregroundColor: headerColor
+        ]
+        let headerStr = NSAttributedString(string: "POMODORO SPRINT", attributes: headerAttrs)
+        headerStr.draw(at: CGPoint(x: cardX + 28.0, y: cardY + cardH - 23.5))
+        
+        let badgeFont = NSFont.systemFont(ofSize: 8.5, weight: .bold)
+        let badgeAttrs: [NSAttributedString.Key: Any] = [
+            .font: badgeFont,
+            .foregroundColor: headerColor
+        ]
+        let badgeStr = NSAttributedString(string: "25M", attributes: badgeAttrs)
+        badgeStr.draw(at: CGPoint(x: cardX + cardW - 38.0, y: cardY + cardH - 23.5))
+        
+        // 10. Center Prominent Countdown Timer (Much Bigger Typography)
         let timeStr = String(format: "%02d:%02d", mins, secs)
-        let font = NSFont.monospacedDigitSystemFont(ofSize: 11.0, weight: .bold)
-        let textColor = entity.isNightMode ?
-            NSColor(calibratedRed: 0.16, green: 0.12, blue: 0.28, alpha: 0.95) :
-            NSColor(calibratedRed: 0.12, green: 0.10, blue: 0.22, alpha: 0.95)
+        let timerFont = NSFont.monospacedDigitSystemFont(ofSize: 24.0, weight: .bold)
+        let timerTextColor = entity.isNightMode ?
+            NSColor(calibratedRed: 0.16, green: 0.12, blue: 0.28, alpha: 0.96 * alpha) :
+            NSColor(calibratedRed: 0.12, green: 0.10, blue: 0.22, alpha: 0.96 * alpha)
         
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: textColor
+        let timerAttrs: [NSAttributedString.Key: Any] = [
+            .font: timerFont,
+            .foregroundColor: timerTextColor
         ]
-        let attrStr = NSAttributedString(string: timeStr, attributes: attrs)
-        let textPoint = CGPoint(x: pillX + 26.0, y: pillY + (pillH - attrStr.size().height) / 2.0 + 0.5)
-        attrStr.draw(at: textPoint)
+        let timerAttrStr = NSAttributedString(string: timeStr, attributes: timerAttrs)
+        let timerSize = timerAttrStr.size()
+        let timerPoint = CGPoint(x: cardX + (cardW - timerSize.width) / 2.0, y: cardY + cardH - 57.0)
+        timerAttrStr.draw(at: timerPoint)
         
-        // 8. Focus Tag label ("FOCUS")
-        let tagFont = NSFont.systemFont(ofSize: 8.5, weight: .heavy)
-        let tagColor = NSColor(calibratedRed: 0.45, green: 0.40, blue: 0.60, alpha: 0.85)
-        let tagAttrs: [NSAttributedString.Key: Any] = [
-            .font: tagFont,
-            .foregroundColor: tagColor
+        // 11. Bottom Integrated Dialogue or Focus Status
+        let subText: String
+        if let speech = entity.speechBubbleText, entity.speechBubbleTimer > 0 {
+            subText = speech
+        } else {
+            subText = "Stay in the flow"
+        }
+        
+        let subFont = NSFont.systemFont(ofSize: 9.5, weight: .semibold)
+        let subParagraph = NSMutableParagraphStyle()
+        subParagraph.alignment = .center
+        subParagraph.lineBreakMode = .byTruncatingTail
+        let subColor = entity.isNightMode ?
+            NSColor(calibratedRed: 0.32, green: 0.28, blue: 0.44, alpha: 0.85 * alpha) :
+            NSColor(calibratedRed: 0.36, green: 0.32, blue: 0.48, alpha: 0.85 * alpha)
+        
+        let subAttrs: [NSAttributedString.Key: Any] = [
+            .font: subFont,
+            .foregroundColor: subColor,
+            .paragraphStyle: subParagraph
         ]
-        let tagStr = NSAttributedString(string: "FOCUS", attributes: tagAttrs)
-        let tagPoint = CGPoint(x: pillX + 66.0, y: pillY + (pillH - tagStr.size().height) / 2.0 + 0.5)
-        tagStr.draw(at: tagPoint)
+        let subAttrStr = NSAttributedString(string: subText, attributes: subAttrs)
+        let subRect = CGRect(x: cardX + 12.0, y: cardY + 14.0, width: cardW - 24.0, height: 16.0)
+        subAttrStr.draw(with: subRect, options: [.usesLineFragmentOrigin])
         
         context.restoreGState()
-        
-        // Return stacked ceiling for speech bubble
-        return pillRect.maxY + 8.0
     }
 }
