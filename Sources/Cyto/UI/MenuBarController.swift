@@ -12,6 +12,7 @@ public final class MenuBarController {
     
     private var moodItem: NSMenuItem?
     private var focusItem: NSMenuItem?
+    private var musicItem: NSMenuItem?
     private var sleepToggleItem: NSMenuItem?
     private var interactiveToggleItem: NSMenuItem?
     private var accessibilityItem: NSMenuItem?
@@ -58,6 +59,11 @@ public final class MenuBarController {
         focus.isEnabled = false
         menu.addItem(focus)
         self.focusItem = focus
+        
+        let music = NSMenuItem(title: "Music: Idle", action: nil, keyEquivalent: "")
+        music.isEnabled = false
+        menu.addItem(music)
+        self.musicItem = music
         
         menu.addItem(NSMenuItem.separator())
         
@@ -127,10 +133,18 @@ public final class MenuBarController {
         expression: JellyExpression,
         accessory: JellyAccessory,
         isSleeping: Bool,
-        isInteractive: Bool
+        isInteractive: Bool,
+        musicTrack: String? = nil
     ) {
         moodItem?.title = "Mood: \(mood.rawValue.capitalized)"
         focusItem?.title = "Focus: \(focus.rawValue.capitalized)"
+        
+        if let track = musicTrack, !track.isEmpty {
+            musicItem?.title = "Music: Playing (\(track))"
+        } else {
+            musicItem?.title = "Music: Idle"
+        }
+        
         sleepToggleItem?.title = isSleeping ? "Wake Up" : "Put to Rest"
         interactiveToggleItem?.title = isInteractive ? "Clickable: Enabled" : "Clickable: Disabled (Pass-Through)"
         

@@ -128,17 +128,19 @@ public final class CytoView: NSView {
         let cx = bounds.midX
         let isResting = (entity.state == .sleeping || entity.state == .sitting)
         // Levitating vertical hover oscillation (idle float keyframe, rests calmly when perched)
-        let hoverBob = isResting ? 0.0 : (sin(entity.floatPhase) * 4.5)
+        let musicBob = (entity.isMusicPlaying && !isResting) ? (sin(entity.musicTempoPhase) * 2.8) : 0.0
+        let hoverBob = isResting ? 0.0 : ((sin(entity.floatPhase) * 4.5) + musicBob)
         let cy: CGFloat = 6.0 + hoverBob
         let w = entity.size.width * entity.squishX
         let h = entity.size.height * entity.squishY
         
         let tilt = entity.isTypingObserved ? entity.curiousTilt : 0.0
+        let musicTilt = entity.isMusicPlaying ? (sin(entity.musicTempoPhase) * 0.04) : 0.0
         let breathScale = 1.0 + sin(entity.breathPhase) * 0.02
         let walkAngle = (entity.state == .walking) ? sin(entity.walkPhase) * 0.07 : 0.0
         
         context.translateBy(x: cx, y: cy)
-        context.rotate(by: walkAngle + tilt)
+        context.rotate(by: walkAngle + tilt + musicTilt)
         context.scaleBy(x: breathScale, y: breathScale)
         
         // 1. Soft Lavender Drop Shadow on Window Titlebar
@@ -162,13 +164,18 @@ public final class CytoView: NSView {
         // 5. Interactive Accessory Overlay (Coffee, Terminal)
         drawAccessory(context: context, w: w, h: h)
         
-        // 6. Sleeping Zzz or Curious Sparkles
+        // 6. Sleeping Zzz or Curious Sparkles or Floating Music Notes
         if entity.state == .sleeping || entity.expression == .sleepy {
             drawSleepingZzz(context: context, h: h)
         } else if entity.expression == .excited {
             drawExcitedSparkles(context: context, w: w, h: h)
         } else if entity.expression == .curious && entity.isTypingObserved {
             drawCuriousQuestionMark(context: context, w: w, h: h)
+        }
+        
+        // 7. Floating Music Notes from Headphones
+        if entity.isMusicPlaying {
+            drawMusicNotes(context: context)
         }
         
         context.restoreGState()
@@ -263,12 +270,20 @@ public final class CytoView: NSView {
         context.strokeEllipse(in: leftCupRect)
         context.strokeEllipse(in: rightCupRect)
         
-        // Glowing Neon Violet LED Ring (#C084FC) that pulses softly
-        let glowAlpha = 0.75 + sin(entity.headphoneGlowPhase) * 0.22
-        let ringColor = CGColor(red: 0.78, green: 0.52, blue: 1.0, alpha: glowAlpha)
+        // Glowing Neon Violet LED Ring that pulses with music or ambient glow
+        let glowAlpha: CGFloat
+        let ringColor: CGColor
+        if entity.isMusicPlaying {
+            glowAlpha = 0.88 + sin(entity.musicTempoPhase * 2.0) * 0.12
+            // Pulsing neon magenta / violet audio spectrum
+            ringColor = CGColor(red: 0.96, green: 0.45, blue: 1.0, alpha: glowAlpha)
+        } else {
+            glowAlpha = 0.75 + sin(entity.headphoneGlowPhase) * 0.22
+            ringColor = CGColor(red: 0.78, green: 0.52, blue: 1.0, alpha: glowAlpha)
+        }
         
         context.saveGState()
-        context.setShadow(offset: .zero, blur: 7.0, color: ringColor)
+        context.setShadow(offset: .zero, blur: entity.isMusicPlaying ? 10.0 : 7.0, color: ringColor)
         context.setStrokeColor(ringColor)
         context.setLineWidth(2.2)
         
@@ -505,6 +520,30 @@ public final class CytoView: NSView {
         
         let zString = NSString(string: "z")
         zString.draw(at: NSPoint(x: zX, y: zY), withAttributes: attrs)
+    }
+    
+    // MARK: - Floating Music Notes
+    private func drawMusicNotes(context: CGContext) {
+        guard !entity.musicNotes.isEmpty else { return }
+        
+        for note in entity.musicNotes {
+            let progress = max(0.0, min(1.0, note.life / note.maxLife))
+            let alpha = progress * 0.95
+            guard alpha > 0.05 else { continue }
+            
+            let font = NSFont.systemFont(ofSize: 13.0, weight: .bold)
+            let textColor = NSColor(calibratedRed: 0.92, green: 0.58, blue: 1.0, alpha: alpha)
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: textColor
+            ]
+            let str = NSAttributedString(string: note.symbol, attributes: attrs)
+            
+            context.saveGState()
+            context.setShadow(offset: .zero, blur: 5.0, color: CGColor(red: 0.92, green: 0.58, blue: 1.0, alpha: alpha * 0.8))
+            str.draw(at: note.position)
+            context.restoreGState()
+        }
     }
     
     // MARK: - Animated Manga Speech Bubble

@@ -6,6 +6,7 @@ public final class CytoController: @unchecked Sendable {
     private let windowTracker: WindowTracker
     private let physicsEngine: PhysicsEngine
     private let activityEngine: ActivityEngine
+    private let musicEngine: MusicEngine
     
     private var overlayPanel: OverlayPanel?
     private var cytoView: CytoView?
@@ -32,6 +33,7 @@ public final class CytoController: @unchecked Sendable {
         self.windowTracker = WindowTracker()
         self.physicsEngine = PhysicsEngine()
         self.activityEngine = ActivityEngine()
+        self.musicEngine = MusicEngine()
     }
     
     public func start() {
@@ -59,6 +61,22 @@ public final class CytoController: @unchecked Sendable {
         
         // Listen globally for typing cadence and Enter key
         setupKeyObserver()
+        
+        // Listen for Apple Music and Spotify playback changes
+        musicEngine.onPlaybackChange = { [weak self] isPlaying, track in
+            guard let self = self else { return }
+            self.entity.isMusicPlaying = isPlaying
+            if isPlaying {
+                if self.entity.state != .sleeping {
+                    self.entity.mood = .playful
+                }
+                if let track = track, !track.isEmpty {
+                    self.entity.speechBubbleText = "Vibing to \(track) ♪"
+                    self.entity.speechBubbleTimer = 2.8
+                    self.entity.speechBubbleMaxDuration = 2.8
+                }
+            }
+        }
         
         // Initial ledge calculation
         refreshLedges()
@@ -223,6 +241,41 @@ public final class CytoController: @unchecked Sendable {
             entity.blinkFactor = max(0.0, entity.blinkFactor - CGFloat(dt * 6.0))
         }
         
+        // 6b. Music Playback Tempo & Particle Simulation
+        if entity.isMusicPlaying {
+            entity.musicTempoPhase += CGFloat(dt * 4.2)
+            if entity.musicTempoPhase > .pi * 2.0 {
+                entity.musicTempoPhase -= .pi * 2.0
+            }
+            
+            entity.musicNoteTimer -= Double(dt)
+            if entity.musicNoteTimer <= 0 {
+                entity.musicNoteTimer = Double.random(in: 0.35...0.65)
+                let symbols = ["♪", "♫", "♩", "♬"]
+                let symbol = symbols.randomElement() ?? "♪"
+                let side: CGFloat = Bool.random() ? -1.0 : 1.0
+                let spawnX = (side > 0) ? (entity.size.width * 0.44 - 4.0) : (-entity.size.width * 0.44 - 10.0)
+                let spawnY = entity.size.height * 0.60
+                let note = MusicNoteParticle(
+                    position: CGPoint(x: spawnX, y: spawnY),
+                    velocity: CGPoint(x: side * CGFloat.random(in: 4.0...12.0), y: CGFloat.random(in: 18.0...32.0)),
+                    symbol: symbol,
+                    life: 1.4
+                )
+                entity.musicNotes.append(note)
+            }
+        }
+        
+        for i in (0..<entity.musicNotes.count).reversed() {
+            entity.musicNotes[i].life -= Double(dt)
+            if entity.musicNotes[i].life <= 0 {
+                entity.musicNotes.remove(at: i)
+            } else {
+                entity.musicNotes[i].position.x += entity.musicNotes[i].velocity.x * dt
+                entity.musicNotes[i].position.y += entity.musicNotes[i].velocity.y * dt
+            }
+        }
+        
         // 7. Behavioral Decision State Machine (paused while user is typing)
         entity.stateTimer += Double(dt)
         if entity.stateTimer >= entity.stateDuration && entity.state.allowsDirectMotion && !entity.isBeingInteractedWith && !entity.isTypingObserved {
@@ -246,7 +299,8 @@ public final class CytoController: @unchecked Sendable {
             expression: entity.expression,
             accessory: entity.accessory,
             isSleeping: entity.state == .sleeping,
-            isInteractive: isInteractive
+            isInteractive: isInteractive,
+            musicTrack: musicEngine.isPlaying ? musicEngine.currentTrack : nil
         )
         
         // 11. Trigger redraw

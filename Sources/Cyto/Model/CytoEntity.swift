@@ -38,6 +38,12 @@ public final class CytoEntity {
     public var speechBubbleTimer: TimeInterval = 0.0
     public var speechBubbleMaxDuration: TimeInterval = 2.4
     
+    // Music Synchronization & Notes
+    public var isMusicPlaying: Bool = false
+    public var musicTempoPhase: CGFloat = 0.0
+    public var musicNoteTimer: Double = 0.0
+    public var musicNotes: [MusicNoteParticle] = []
+    
     public var currentLedgeY: CGFloat?
     public var isBeingInteractedWith: Bool = false
     public var affection: CGFloat = 0.5
@@ -208,3 +214,22 @@ public final class CytoEntity {
         }
     }
 }
+
+public struct MusicNoteParticle: Sendable {
+    public var position: CGPoint
+    public var velocity: CGPoint
+    public var symbol: String
+    public var life: Double
+    public var maxLife: Double
+    public var scale: CGFloat
+    
+    public init(position: CGPoint, velocity: CGPoint, symbol: String, life: Double = 1.3) {
+        self.position = position
+        self.velocity = velocity
+        self.symbol = symbol
+        self.life = life
+        self.maxLife = life
+        self.scale = 1.0
+    }
+}
+
