@@ -13,6 +13,7 @@ public final class MenuBarController {
     private var moodItem: NSMenuItem?
     private var focusItem: NSMenuItem?
     private var musicItem: NSMenuItem?
+    private var environmentItem: NSMenuItem?
     private var sleepToggleItem: NSMenuItem?
     private var interactiveToggleItem: NSMenuItem?
     private var accessibilityItem: NSMenuItem?
@@ -64,6 +65,11 @@ public final class MenuBarController {
         music.isEnabled = false
         menu.addItem(music)
         self.musicItem = music
+        
+        let env = NSMenuItem(title: "Ambient: Daylight", action: nil, keyEquivalent: "")
+        env.isEnabled = false
+        menu.addItem(env)
+        self.environmentItem = env
         
         menu.addItem(NSMenuItem.separator())
         
@@ -134,7 +140,10 @@ public final class MenuBarController {
         accessory: JellyAccessory,
         isSleeping: Bool,
         isInteractive: Bool,
-        musicTrack: String? = nil
+        musicTrack: String? = nil,
+        isNight: Bool = false,
+        batteryPercent: Int? = nil,
+        isLowBattery: Bool = false
     ) {
         moodItem?.title = "Mood: \(mood.rawValue.capitalized)"
         focusItem?.title = "Focus: \(focus.rawValue.capitalized)"
@@ -144,6 +153,15 @@ public final class MenuBarController {
         } else {
             musicItem?.title = "Music: Idle"
         }
+        
+        var envDesc = isNight ? "Nocturnal Glow" : "Daylight"
+        if let pct = batteryPercent {
+            envDesc += " • \(pct)%"
+        }
+        if isLowBattery {
+            envDesc += " (Low Power)"
+        }
+        environmentItem?.title = "Ambient: \(envDesc)"
         
         sleepToggleItem?.title = isSleeping ? "Wake Up" : "Put to Rest"
         interactiveToggleItem?.title = isInteractive ? "Clickable: Enabled" : "Clickable: Disabled (Pass-Through)"

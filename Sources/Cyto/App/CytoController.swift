@@ -7,6 +7,7 @@ public final class CytoController: @unchecked Sendable {
     private let physicsEngine: PhysicsEngine
     private let activityEngine: ActivityEngine
     private let musicEngine: MusicEngine
+    private let systemContextEngine: SystemContextEngine
     
     private var overlayPanel: OverlayPanel?
     private var cytoView: CytoView?
@@ -34,6 +35,7 @@ public final class CytoController: @unchecked Sendable {
         self.physicsEngine = PhysicsEngine()
         self.activityEngine = ActivityEngine()
         self.musicEngine = MusicEngine()
+        self.systemContextEngine = SystemContextEngine()
     }
     
     public func start() {
@@ -213,6 +215,23 @@ public final class CytoController: @unchecked Sendable {
         
         previousKeyIdle = keyIdle
         
+        // 2b. System Context, Circadian Rhythm & Battery Sampling
+        let sysContext = systemContextEngine.updateContext()
+        entity.isNightMode = sysContext.isNight || sysContext.isDarkMode
+        entity.batteryPercentage = sysContext.batteryPercentage
+        
+        if sysContext.isLowBattery && !entity.isLowBattery {
+            entity.isLowBattery = true
+            if entity.state != .sleeping {
+                entity.speechBubbleText = "Low battery... conserving energy zzz"
+                entity.speechBubbleTimer = 3.0
+                entity.speechBubbleMaxDuration = 3.0
+                entity.transition(to: .sitting, duration: 60.0)
+            }
+        } else if !sysContext.isLowBattery && entity.isLowBattery {
+            entity.isLowBattery = false
+        }
+        
         // Query focus tier
         let (focusTier, _) = activityEngine.updateFocusTier()
         entity.focusTier = focusTier
@@ -323,7 +342,10 @@ public final class CytoController: @unchecked Sendable {
             accessory: entity.accessory,
             isSleeping: entity.state == .sleeping,
             isInteractive: isInteractive,
-            musicTrack: musicEngine.isPlaying ? musicEngine.currentTrack : nil
+            musicTrack: musicEngine.isPlaying ? musicEngine.currentTrack : nil,
+            isNight: entity.isNightMode,
+            batteryPercent: entity.batteryPercentage,
+            isLowBattery: entity.isLowBattery
         )
         
         // 11. Trigger redraw

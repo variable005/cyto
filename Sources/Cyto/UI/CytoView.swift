@@ -222,10 +222,22 @@ public final class CytoView: NSView {
         context.addPath(path)
         context.clip()
         
-        // Soft Lavender / Purple Shadow Gradient (Matches Palette: #FFFFFF to #D8D0E8)
+        // Soft Lavender / Nocturnal Twilight Gradient
         let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let topColor = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.98)
-        let bottomColor = CGColor(red: 0.85, green: 0.82, blue: 0.93, alpha: 0.96) // Soft lavender mist
+        let topColor: CGColor
+        let bottomColor: CGColor
+        let strokeColor: CGColor
+        
+        if entity.isNightMode {
+            // Ethereal midnight lavender / twilight luminescence
+            topColor = CGColor(red: 0.94, green: 0.92, blue: 0.98, alpha: 0.97)
+            bottomColor = CGColor(red: 0.72, green: 0.66, blue: 0.88, alpha: 0.96)
+            strokeColor = CGColor(red: 0.62, green: 0.55, blue: 0.82, alpha: 0.95)
+        } else {
+            topColor = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.98)
+            bottomColor = CGColor(red: 0.85, green: 0.82, blue: 0.93, alpha: 0.96)
+            strokeColor = CGColor(red: 0.74, green: 0.70, blue: 0.86, alpha: 0.90)
+        }
         
         if let gradient = CGGradient(colorsSpace: colorSpace, colors: [topColor, bottomColor] as CFArray, locations: [0.0, 1.0]) {
             context.drawLinearGradient(gradient, start: CGPoint(x: 0, y: h), end: CGPoint(x: 0, y: 0), options: [])
@@ -235,7 +247,7 @@ public final class CytoView: NSView {
         
         // Soft clean outline
         context.addPath(path)
-        context.setStrokeColor(CGColor(red: 0.74, green: 0.70, blue: 0.86, alpha: 0.90))
+        context.setStrokeColor(strokeColor)
         context.setLineWidth(1.6)
         context.strokePath()
     }

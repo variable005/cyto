@@ -44,6 +44,11 @@ public final class CytoEntity {
     public var musicNoteTimer: Double = 0.0
     public var musicNotes: [MusicNoteParticle] = []
     
+    // System Context & Circadian Rhythm
+    public var isNightMode: Bool = false
+    public var isLowBattery: Bool = false
+    public var batteryPercentage: Int? = nil
+    
     public var currentLedgeY: CGFloat?
     public var perchedWindowID: CGWindowID?
     public var perchedLedgeRect: CGRect?
