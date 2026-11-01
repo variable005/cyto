@@ -229,19 +229,22 @@ public final class CytoView: NSView {
         
         path.addArc(center: CGPoint(x: 0, y: headCenterY), radius: headR, startAngle: 0, endAngle: .pi, clockwise: false)
         
+        // Cloth dynamics offset (winds and drag inertia trail the ghost skirt)
+        let clothShift = entity.skirtClothSkew * 8.5
+        
         // Left side draping down
-        let leftBottom = CGPoint(x: -headR - 2.0, y: 0)
+        let leftBottom = CGPoint(x: -headR - 2.0 + clothShift * 0.5, y: 0)
         path.addLine(to: leftBottom)
         
-        // Animated folds / ruffles along bottom hem
+        // Animated folds / ruffles along bottom hem with secondary wind drag
         let rippleCount = 4
         let segmentW = ((headR + 2.0) * 2.0) / CGFloat(rippleCount)
         let isResting = (entity.state == .sleeping || entity.state == .sitting)
         let waveAmp: CGFloat = isResting ? 1.5 : 4.5
         
         for i in 0..<rippleCount {
-            let startX = -(headR + 2.0) + CGFloat(i) * segmentW
-            let endX = startX + segmentW
+            let startX = (i == 0) ? leftBottom.x : (-(headR + 2.0) + CGFloat(i) * segmentW + clothShift)
+            let endX = (i == rippleCount - 1) ? (headR + 2.0 + clothShift * 0.5) : (-(headR + 2.0) + CGFloat(i + 1) * segmentW + clothShift)
             let midX = (startX + endX) / 2.0
             let rippleWave = sin(entity.wispPhase + CGFloat(i) * 1.4) * waveAmp
             path.addQuadCurve(to: CGPoint(x: endX, y: 0), control: CGPoint(x: midX, y: 4.0 + rippleWave))
@@ -288,18 +291,18 @@ public final class CytoView: NSView {
             context.drawRadialGradient(coreGrad, startCenter: coreCenter, startRadius: 0, endCenter: coreCenter, endRadius: coreRadius, options: [])
         }
         
-        // 2. 3D Interior Sheet Creases (Ambient Occlusion Folds)
+        // 2. 3D Interior Sheet Creases (Ambient Occlusion Folds with wind skew)
         context.saveGState()
         context.setLineCap(.round)
         for i in 1..<rippleCount {
-            let creaseX = -(headR + 2.0) + CGFloat(i) * segmentW
+            let creaseBaseX = -(headR + 2.0) + CGFloat(i) * segmentW + clothShift
             let creaseH: CGFloat = (i == 2) ? (h * 0.28) : (h * 0.20)
             let creaseWave = sin(entity.wispPhase + CGFloat(i) * 1.4) * (waveAmp * 0.6)
             let creasePath = CGMutablePath()
-            creasePath.move(to: CGPoint(x: creaseX, y: 1.0 + creaseWave))
+            creasePath.move(to: CGPoint(x: creaseBaseX, y: 1.0 + creaseWave))
             creasePath.addQuadCurve(
-                to: CGPoint(x: creaseX * 0.80, y: creaseH),
-                control: CGPoint(x: creaseX * 0.90, y: creaseH * 0.45)
+                to: CGPoint(x: (creaseBaseX - clothShift * 0.4) * 0.80, y: creaseH),
+                control: CGPoint(x: (creaseBaseX - clothShift * 0.2) * 0.90, y: creaseH * 0.45)
             )
             context.setStrokeColor(entity.isNightMode ?
                 CGColor(red: 0.55, green: 0.48, blue: 0.76, alpha: 0.35) :
@@ -323,6 +326,12 @@ public final class CytoView: NSView {
     private func drawHeadphones(context: CGContext, w: CGFloat, h: CGFloat) {
         let headR = w * 0.44
         let headCenterY = h - headR - 2.0
+        
+        context.saveGState()
+        // Apply secondary spring-damper inertia rotation to the headphone assembly
+        context.translateBy(x: 0, y: headCenterY)
+        context.rotate(by: entity.headphoneSecondaryTilt)
+        context.translateBy(x: 0, y: -headCenterY)
         
         // Black Headband
         context.setStrokeColor(CGColor(red: 0.16, green: 0.14, blue: 0.22, alpha: 1.0)) // Deep obsidian
@@ -379,6 +388,8 @@ public final class CytoView: NSView {
         context.strokeEllipse(in: leftCupRect.insetBy(dx: ringInset, dy: ringInset))
         context.strokeEllipse(in: rightCupRect.insetBy(dx: ringInset, dy: ringInset))
         context.restoreGState()
+        
+        context.restoreGState() // restore secondary inertia transform
     }
     
 

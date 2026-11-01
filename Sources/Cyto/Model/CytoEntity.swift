@@ -24,6 +24,11 @@ public final class CytoEntity {
     public var wispPhase: CGFloat
     public var headphoneGlowPhase: CGFloat
     
+    // Secondary Motion & Cloth Dynamics
+    public var skirtClothSkew: CGFloat = 0.0
+    public var headphoneSecondaryTilt: CGFloat = 0.0
+    public var headphoneSecondaryVelocity: CGFloat = 0.0
+    
     public var stateTimer: TimeInterval
     public var stateDuration: TimeInterval
     public var blinkTimer: TimeInterval

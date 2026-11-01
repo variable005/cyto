@@ -366,9 +366,11 @@ stateDiagram-v2
 - Multi-Phase Emotion Lifecycle: Evaluates burst velocity, keystroke density, and hesitation pauses to cycle expressions through Curious, Focused, Excited, Confused, Surprised, Happy, and Neutral modes.
 - Cadence-Aware Praise: Dispatches dialogue bubbles only after substantial sustained focus sprints (25+ keys) with built-in cooldowns (50 seconds) to prevent distraction.
 
-### 3. Procedural Vector Rendering
-- Ethereal Vector Geometry: Generates a seamless dome-headed ghost sheet with ambient lavender gradients (`#FFFFFF` to `#D8D0E8`) and 4 harmonic rippling bottom hem wisps.
-- Studio Headphones: Features an obsidian headband anchored directly to the dome geometry with pulsing neon violet LED ring lighting (`#C084FC`).
+### 3. Procedural Vector Rendering & Secondary Kinematics
+- Ethereal Vector Geometry & Bioluminescent Core Glow: Generates a dome-headed ghost sheet with ambient lavender gradients (`#FFFFFF` to `#D8D0E8`), subsurface ectoplasm radial glow pulsing with breath modulation, and 3D ambient occlusion interior creases along the bottom hem ruffles.
+- Studio Headphones with Metallic Pivots: Features an obsidian headband anchored directly to the dome geometry with brushed aluminum pivot brackets and pulsing neon violet LED ring lighting (`#C084FC`).
+- Skirt Cloth Wind-Drag Inertia: Dynamically tracks lateral velocity to simulate physical fabric drag along the hem endpoints and interior folds (`skirtClothSkew`), causing the ghostly skirt to flutter and billow organically during drags, throws, and hovering flights.
+- Secondary Headphone Spring Dynamics: Implements a damped harmonic oscillator simulation (`springForce = 160.0`, `dampingForce = -12.0`) that rotates the headphone rig around the cranial anchor point (`headphoneSecondaryTilt`), providing physical mass and inertia during sudden acceleration.
 - Adaptive Perching: When perched on a title bar or resting, bottom wisps calm down, eyelids close softly, and floating sleep particles ascend smoothly.
 
 ### 4. Animated Speech Bubble System

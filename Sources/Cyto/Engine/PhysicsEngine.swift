@@ -37,6 +37,18 @@ public final class PhysicsEngine {
             entity.headphoneGlowPhase -= .pi * 2.0
         }
         
+        // Secondary Motion: Skirt Cloth Wind-Drag Inertia
+        let targetClothSkew = max(-1.0, min(1.0, -entity.velocity.dx / 320.0))
+        entity.skirtClothSkew += (targetClothSkew - entity.skirtClothSkew) * min(1.0, 9.0 * deltaTime)
+        
+        // Secondary Motion: Headphone Inertia Spring-Damper
+        let targetHeadphoneTilt = max(-0.18, min(0.18, -entity.velocity.dx / 1200.0))
+        let displacement = targetHeadphoneTilt - entity.headphoneSecondaryTilt
+        let springForce = displacement * 160.0
+        let dampingForce = -entity.headphoneSecondaryVelocity * 12.0
+        entity.headphoneSecondaryVelocity += (springForce + dampingForce) * deltaTime
+        entity.headphoneSecondaryTilt += entity.headphoneSecondaryVelocity * deltaTime
+        
         // 3. Skip kinematic simulation if manually dragged
         if entity.state == .dragged {
             entity.currentLedgeY = nil
