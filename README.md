@@ -24,11 +24,11 @@ Cyto utilizes a decoupled modular architecture executed on a 60Hz run loop simul
 +-----------------------------------------------------------------------------------------+
 |                                    Cyto Runtime Loop                                    |
 |                                                                                         |
-|  [Hardware Telemetry]         [Window Server]                  [User Input]             |
-|   CGEventSource Key/Mouse      kCGWindowListCopyWindowInfo      Mouse Drag / Pet Taps   |
+|  [Hardware Telemetry]         [Window Server]         [DistributedCenter & IOKit]       |
+|   CGEventSource Key/Mouse      kCGWindowListCopy...    Apple Music / Spotify / Battery  |
 |            |                               |                             |              |
 |            v                               v                             v              |
-|     ActivityEngine                   WindowTracker                   CytoView           |
+|     ActivityEngine                   WindowTracker               Music & SystemContext  |
 |            |                               |                             |              |
 |            +---------------+---------------+-----------------------------+              |
 |                            |                                                            |
@@ -38,8 +38,8 @@ Cyto utilizes a decoupled modular architecture executed on a 60Hz run loop simul
 |            +---------------+---------------+                                            |
 |            |                               |                                            |
 |            v                               v                                            |
-|      PhysicsEngine               EmotionCycleEngine                                     |
-|    (Ethereal Aerodynamics)      (Typing Progression)                                    |
+|      PhysicsEngine                 Emotion & Focus                                      |
+|    (Hitchhiking & Aerodynamics)   (Cadence, Pomodoro)                                   |
 |            |                               |                                            |
 |            +---------------+---------------+                                            |
 |                            |                                                            |
@@ -149,11 +149,16 @@ classDiagram
         -WindowTracker windowTracker
         -PhysicsEngine physicsEngine
         -ActivityEngine activityEngine
+        -MusicEngine musicEngine
+        -SystemContextEngine systemContextEngine
         -OverlayPanel overlayPanel
         -CytoView cytoView
         -MenuBarController menuBarController
         +start()
         +tick()
+        +toggleFocusSession()
+        +triggerEyeBreak()
+        +dropTreat()
     }
 
     class CytoEntity {
@@ -171,13 +176,30 @@ classDiagram
         +CGFloat curiousTilt
         +String speechBubbleText
         +Double speechBubbleTimer
-        +Double stateTimer
-        +Double stateDuration
-        +Double blinkTimer
-        +Double breathPhase
-        +Double walkPhase
-        +Bool isBeingInteractedWith
-        +CGFloat affection
+        +Bool isMusicPlaying
+        +CGFloat musicTempoPhase
+        +Bool isNightMode
+        +Bool isLowBattery
+        +Bool isFocusSessionActive
+        +TimeInterval focusSessionRemaining
+        +CGWindowID perchedWindowID
+    }
+
+    class MusicEngine {
+        +Bool isPlaying
+        +String currentTrack
+        +String currentArtist
+    }
+
+    class SystemContextEngine {
+        +updateContext() SystemContext
+    }
+
+    class MusicNoteParticle {
+        +CGPoint position
+        +CGPoint velocity
+        +String symbol
+        +Double life
     }
 
     class Ledge {
@@ -185,6 +207,7 @@ classDiagram
         +CGFloat topY
         +CGFloat minX
         +CGFloat maxX
+        +CGWindowID windowID
     }
 
     class CytoState {
@@ -269,6 +292,8 @@ classDiagram
     CytoController --> WindowTracker : queries
     CytoController --> PhysicsEngine : steps
     CytoController --> ActivityEngine : samples
+    CytoController --> MusicEngine : observes
+    CytoController --> SystemContextEngine : samples
     CytoController --> OverlayPanel : positions
     CytoController --> MenuBarController : syncs
     OverlayPanel *-- CytoView : embeds
@@ -279,6 +304,7 @@ classDiagram
     CytoEntity --> FocusTier : reflects
     CytoEntity --> JellyExpression : displays
     CytoEntity --> JellyAccessory : equips
+    CytoEntity *-- MusicNoteParticle : emits
     CytoEntity ..> Ledge : perches on
 ```
 
@@ -354,6 +380,28 @@ stateDiagram-v2
 - Circular Radial Hit-Test: Constrains mouse interaction to a 52-point radius centered on the entity body. All clicks outside this perimeter pass cleanly through to background windows, editors, and web pages.
 - Direct Tapping: Clicking directly on Cyto prompts cheerful dialogue, friendly expressions, and physical hops.
 - Optional Accessibility Integration: Users can enable optional system-level Return/Enter key tracking via the menu bar item for dedicated submission reactions.
+
+### 6. Zero-Permission Media Synchronization (Headphone Music Engine)
+- Distributed Audio Telemetry: Listens non-invasively to player state broadcasts from Apple Music (`com.apple.Music.playerInfo`) and Spotify (`com.spotify.client.PlaybackStateChanged`).
+- Rhythmic Head Bobbing: Synchronizes vertical oscillation and kinetic head tilt to active audio playback.
+- Dynamic LED Ring Lighting: Headphone rings shift to an animated neon magenta/violet audio spectrum with pulsing luminance.
+- Ethereal Musical Notes: Emits drifting, fading musical note particles that rise smoothly from the headphone earcups.
+
+### 7. Window Hitchhiking & Dynamic Topography Traversal
+- Window Displacement Tracking: Associates perched entities with specific Quartz window identifiers, monitoring coordinate deltas across simulation ticks.
+- Real-Time Window Riding: When a user drags or repositions an active IDE or browser window, Cyto smoothly hitches a ride along the moving title bar with kinetic leaning.
+
+### 8. Circadian Luminescence & Hardware Energy Awareness
+- Nocturnal Twilight Palette: Automatically transitions ectoplasm to a calming midnight lavender hue during evening hours (8 PM to 6 AM) or when macOS Dark Mode is enabled.
+- Hardware Power Throttling: Reads battery capacity via IOKit power source APIs. If battery drops below 20% on DC power, Cyto rests peacefully to conserve CPU cycles.
+
+### 9. Pomodoro Focus Sprints & Micro-Breaks
+- 25-Minute Focus Timer: Locks Cyto into a quiet, attentive coding posture equipped with a mini terminal accessory to accompany deep work sessions.
+- 20-20-20 Eye Strain Breaks: Dedicated 20-second resting break closes Cyto's eyelids and prompts the user to focus on a distant focal point.
+
+### 10. Multi-Display Geometry & Interactive Treats
+- Seamless Multi-Monitor Traversal: Computes walkable ledge geometry and ground boundaries across all connected displays simultaneously.
+- Interactive Coffee Treats: Menu bar treat drop prompts joyful hops, affectionate dialogue, and coffee mug equipment.
 
 ---
 
