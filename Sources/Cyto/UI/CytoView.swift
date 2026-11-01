@@ -9,6 +9,10 @@ public final class CytoView: NSView {
     private var lastDragTime: Date = Date()
     private var petCounter: Int = 0
     
+    public var onTimerTapped: (() -> Void)?
+    public private(set) var activeBubbleRect: CGRect?
+    public private(set) var activeTimerRect: CGRect?
+    
     public init(frame frameRect: NSRect, entity: CytoEntity) {
         self.entity = entity
         super.init(frame: frameRect)
@@ -22,6 +26,13 @@ public final class CytoView: NSView {
     // MARK: - Interactive Hit-Testing
     
     public override func hitTest(_ point: NSPoint) -> NSView? {
+        if let timerRect = activeTimerRect, timerRect.contains(point) {
+            return self
+        }
+        if let bubbleRect = activeBubbleRect, bubbleRect.contains(point) {
+            return self
+        }
+        
         let cx = bounds.midX
         let isResting = (entity.state == .sleeping || entity.state == .sitting)
         let hoverBob = isResting ? 0.0 : (sin(entity.floatPhase) * 4.5)
@@ -38,6 +49,19 @@ public final class CytoView: NSView {
     // MARK: - Mouse Interaction
     
     public override func mouseDown(with event: NSEvent) {
+        let clickPoint = convert(event.locationInWindow, from: nil)
+        if let timerRect = activeTimerRect, timerRect.contains(clickPoint) {
+            onTimerTapped?()
+            NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+            return
+        }
+        if let bubbleRect = activeBubbleRect, bubbleRect.contains(clickPoint) {
+            entity.speechBubbleTimer = 0.0
+            entity.speechBubbleText = nil
+            needsDisplay = true
+            return
+        }
+        
         dragStartMouseScreen = NSEvent.mouseLocation
         dragStartEntityPos = entity.position
         recentDragDeltas.removeAll()

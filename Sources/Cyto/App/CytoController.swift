@@ -48,6 +48,10 @@ public final class CytoController: @unchecked Sendable {
         panel.contentView = view
         panel.orderFrontRegardless()
         
+        view.onTimerTapped = { [weak self] in
+            self?.toggleFocusSession()
+        }
+        
         self.overlayPanel = panel
         self.cytoView = view
         
